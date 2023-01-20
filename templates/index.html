@@ -1,0 +1,20 @@
+
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+      <div class="content">
+      {% if user.is_authenticated %}
+        <div class="content__top">
+          <div class="content__descr">Имя:</div>
+          <div class="content__subtitle">{{ user.first_name }}</div>
+          <div class="content__descr">Фамилия:</div>
+          <div class="content__subtitle">{{ user.last_name }}</div>
+          <div class="content__descr">Номер телефона:</div>
+          <div class="content__subtitle">{{ user.phone }}</div>
+          <div class="content__descr">Аккаунт telegram:</div>
+          <div class="content__subtitle">{{ user.telegram }}</div>
+        </div>
+      {% endif %}
+      </div>
+{% endblock %}
+

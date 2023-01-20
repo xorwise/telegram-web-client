@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load mathfilters %}
+{% block content %}
+      <div class="content">
+        <h2 class="content__title title">Сообщения в очереди</h2>
+        <div class="content__list">
+        {% if len is 0 %}
+        <div class="content__line line">
+            Запросы не были найдены! Создайте запрос в разделе "Поиск сообщений".
+        </div>
+        {% endif %}
+            {% for request in requests %}
+          <div class="content__item item-content">
+
+              <p class="item-content__title">Запрос на поиск</p>
+              <p class="item-content__text">Каналы поиска:
+              <br>
+                  {% for channel in request.channels %}
+                    {{ channel }}<br>
+                  {% endfor %}
+              </p>
+          <br>
+               <p class="item-content__text">Ключевые слова: {{ request.keywords }}</p>
+                <p class="item-content__text">Группы для пересылки: {{ request.groups }}</p>
+              <div class="item-content__bottom">
+                {% if request.is_active %}
+                <span class="item-content__descr item-content__descr_green">Активно</span>
+                  {% else %}
+                 <span class="item-content__descr item-content__descr_red">Не активно</span>
+                  {% endif %}
+              {% if request.is_active %}
+                  <form method="post">
+                      {% csrf_token %}
+                      <button class="item-content__link btn btn_red" name="request_{{ request.id }}" type="submit">Стоп</button>
+                  </form>
+              {% endif %}
+        </div>
+          </div>
+              {% endfor %}
+        <div class="pagging">
+            {% if page > 0 %}
+          <a class="pagging__arrow" href="/tg/queue/{{ page|add:-1 }}">&lt;&lt;</a>
+            {% endif %}
+          <ul class="pagging__list">
+            <li>
+              <a class="pagging__item _active" href="">{{ page|add:1 }}</a>
+            </li>
+          </ul>
+        {% if len > page|mul:8|add:8 %}
+          <a class="pagging__arrow" href="/tg/queue/{{ page | add:1 }}">&gt;&gt;</a>
+        {% endif %}
+        </div>
+      </div>
+      </div>
+{% endblock %}

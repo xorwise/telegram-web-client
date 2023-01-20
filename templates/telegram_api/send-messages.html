@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <title>Отправка сообщений</title>
+  <meta charset="UTF-8">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="stylesheet" href="css/style.min.css?_v=20221226164248">
+  <!-- <link rel="shortcut icon" href="img/favicon.ico"> -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+  <div class="wrapper">
+    <header class="header">
+      <div class="header__container">
+        <a class="header__logo" href="">
+          <img src="img/logo.png" alt="concept">
+        </a>
+        <a class="header__right" href="../index.html">
+          <div class="header__name">Гарайшин Ильназ</div>
+          <div class="header__icon">
+            <img src="img/profile-logo.jpg" alt="Гарайшин Ильназ">
+          </div>
+        </a>
+        <div class="header__menu menu">
+          <button class="menu__icon icon-menu" type="button" aria-label="Открыть меню">
+            <span></span>
+          </button>
+          <nav class="menu__body">
+            <ul class="menu__list">
+              <li class="menu__item">
+                <a class="menu__link" href="../index.html">Профиль</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="search-messages.html">Поиск сообщений</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="send-messages.html">Отправка сообщений</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="message-queue.html">Сообщения в очереди</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="message-archive.html">Архивированные
+                  сообщения</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="">Выйти</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <aside class="left-menu" data-spollers="991.98,max">
+        <div class="left-menu__label" type="button" data-spoller>Меню</div>
+        <ul class="left-menu__list">
+          <li class="left-menu__item">
+            <a class="left-menu__link" href="search-messages.html">Поиск сообщений</a>
+          </li>
+          <li class="left-menu__item">
+            <a class="left-menu__link" href="send-messages.html">Отправка сообщений</a>
+          </li>
+          <li class="left-menu__item">
+            <a class="left-menu__link" href="message-queue.html">Сообщения в очереди</a>
+          </li>
+          <li class="left-menu__item">
+            <a class="left-menu__link" href="message-archive.html">Архивированные сообщения</a>
+          </li>
+          <li class="left-menu__item">
+            <a class="left-menu__link" href="">Выйти</a>
+          </li>
+        </ul>
+      </aside>
+      <div class="content">
+        <h2 class="content__title title">Отправка сообщений</h2>
+        <form class="content__form" action="#">
+          <div class="content__line line">
+            <label class="content__label label" for="title-post">Заголовок сообщения</label>
+            <input class="input content__input" id="title-post" autocomplete="off" type="text" name="form[]">
+          </div>
+          <div class="content__line line">
+            <label class="content__label label" for="chn">Список каналов</label>
+            <input class="input content__input" id="chn" autocomplete="off" type="text" name="form[]">
+          </div>
+          <div class="content__line line">
+            <label class="content__label label" for="text-post">Текст сообщений</label>
+            <textarea class="textarea content__textarea" id="text-post" autocomplete="off" type="text" name="form[]"></textarea>
+          </div>
+          <div class="content__line line">
+            <label class="content__label label" for="channels-post">Файлы:</label>
+            <input class="content__input" multiple="multiple" autocomplete="off" type="file" name="form[]">
+          </div>
+          <div class="content__wrapper">
+            <div class="content__row">
+              <div class="content__line">
+                <label class="content__label label" for="form-0">Дата и время отправки:</label>
+                <input class="content__input input_date" id="form-0" autocomplete="off" type="datetime-local" value="2017-06-01T08:30" name="form[]">
+              </div>
+              <div class="content__checkbox checkbox">
+                <input class="checkbox__input" id="c_0" type="checkbox" value="0" name="form[]">
+                <label class="checkbox__label" for="c_0">
+                  <span class="checkbox__text">Повторять</span>
+                </label>
+              </div>
+              <select class="content__select" data-sel="c_0" name="form-sel-0">
+                <option value="form-01" selected>Каждый день</option>
+                <option value="form-02">Через день</option>
+                <option value="form-03">Через 2 дня</option>
+                <option value="form-04">Через 3 дня</option>
+                <option value="form-05">Через каждые 4 дня</option>
+                <option value="form-06">Через каждые 5 дней</option>
+                <option value="form-07">Через каждые 6 дней</option>
+                <option value="form-08">Раз в неделю</option>
+                <option value="form-09">Каждый понедельник</option>
+                <option value="form-010">Каждый вторник</option>
+                <option value="form-011">Каждую среду</option>
+                <option value="form-012">Каждый четверг</option>
+                <option value="form-013">Каждую пятницу</option>
+                <option value="form-014">Каждую субботу</option>
+                <option value="form-015">Каждое воскресенье</option>
+              </select>
+            </div>
+          </div>
+          <button class="content__btn btn" type="button">Добавить дату и время публикации</button>
+          <div class="content__btn-wrapper">
+
+            <button class="content__btn btn">Опубликовать</button>
+          </div>
+        </form>
+      </div>
+    </main>
+    <footer class="footer">
+      <div class="footer__container">
+
+      </div>
+    </footer>
+  </div>
+
+  <!-- <script src="https://api-maps.yandex.ru/2.1/?apikey=51092280-e018-4241-bc97-180570de25d4&lang=ru_RU&_v=20221226164248"></script> -->
+  <script src="js/app.min.js?_v=20221226164248"></script>
+
+</body>
+
+</html>

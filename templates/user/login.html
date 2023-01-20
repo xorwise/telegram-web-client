@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <title>Гарайшин Ильназ</title>
+  <meta charset="UTF-8">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <!-- <link rel="shortcut icon" href="img/favicon.ico"> -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header class="header">
+      <div class="header__container">
+        <a class="header__logo" href="http://localhost:8000/">
+          <img src="{% static 'img/logo.png' %}" alt="concept">
+        </a>
+        <div class="header__right">
+            {% if user.is_authenticated %}
+          <div class="header__name">{{ user.get_username }}</div>
+          <div class="header__icon">
+            <img src="{% static 'img/profile-logo.jpg' %}" alt="Гарайшин Ильназ">
+          </div>
+               <a class="header__name" id="logout" href="/accounts/logout">выход</a>
+            {% endif %}
+
+        </div>
+
+
+      </div>
+    </header>
+      <main class="page">
+
+
+      <div class="auth">
+        <div class="auth__body">
+          <h2 class="auth__title title">Авторизация</h2>
+          <form class="content__form" method="post">
+            {% csrf_token %}
+            <div class="auth__line line">
+                <label class="auth__label label" for="id_username">Введите логин:</label>
+                <input class="input auth__input" type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" required="" id="id_username">
+            </div>
+            <div class="auth__line line">
+                <label class="auth__label label" for="id_password">Введите пароль:</label>
+                <input class="auth__input input" type="password" name="password" autocomplete="current-password" required="" id="id_password">
+            </div>
+              <button class="auth__btn btn" type="submit">Войти</button>
+          <p>
+              <label class="auth__label label">{{ result }}</label>
+          </p>
+          </form>
+          <a class="auth__descr" href="/password/reset">Забыли пароль?</a>
+          <a class="auth__descr" href="/signup">Зарегистрироваться</a>
+        </div>
+      </div>
+          </main>
+  </div>
+    <!-- <script src="https://api-maps.yandex.ru/2.1/?apikey=51092280-e018-4241-bc97-180570de25d4&lang=ru_RU&_v=20221226164248"></script> -->
+    <script src="{% static 'js/app.min.js' %}"></script>
+</body>
+</html>

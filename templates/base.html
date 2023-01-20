@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <title>Гарайшин Ильназ</title>
+  <meta charset="UTF-8">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <!-- <link rel="shortcut icon" href="img/favicon.ico"> -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header class="header">
+      <div class="header__container">
+        <a class="header__logo" href="/">
+          <img src="{% static 'img/logo.png' %}" alt="concept">
+        </a>
+        <div class="header__right">
+            {% if user.is_authenticated %}
+          <a class="header__name" href="/profile">{{ user.get_username }}</a>
+          <a href="/profile" class="header__icon">
+            <img src="{% static 'img/profile-logo.jpg' %}" alt="Гарайшин Ильназ">
+          </a>
+               <a class="header__name" id="logout" href="/logout">выход</a>
+                {% else %}
+               <a class="header__name" id="logout" href="/login">вход</a>
+            {% endif %}
+
+
+        </div>
+        <div class="header__menu menu">
+          <button class="menu__icon icon-menu" type="button" aria-label="Открыть меню">
+            <span></span>
+          </button>
+          <nav class="menu__body">
+            <ul class="menu__list">
+                <li class="menu__item">
+                <a class="menu__link" href="/tg">Telegram-авторизация</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="/profile">Профиль</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="/tg/search">Поиск сообщений</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="telegram_api/send-messages.html">Отправка сообщений</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="/tg/queue/">Сообщения в очереди</a>
+              </li>
+              <li class="menu__item">
+                <a class="menu__link" href="telegram_api/message-archive.html">Архивированные
+                  сообщения</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </header>
+      <main class="page">
+
+          <aside class="left-menu" data-spollers="991.98,max">
+            <div class="left-menu__label" type="button" data-spoller>Меню</div>
+            <ul class="left-menu__list">
+                <li class="left-menu__item">
+                <a class="left-menu__link" href="/tg">Telegram-авторизация</a>
+              </li>
+              <li class="left-menu__item">
+                <a class="left-menu__link" href="/tg/search">Поиск сообщений</a>
+              </li>
+              <li class="left-menu__item">
+                <a class="left-menu__link" href="telegram_api/send-messages.html">Отправка сообщений</a>
+              </li>
+              <li class="left-menu__item">
+                <a class="left-menu__link" href="/tg/queue/">Сообщения в очереди</a>
+              </li>
+              <li class="left-menu__item">
+                <a class="left-menu__link" href="telegram_api/message-archive.html">Архивированные сообщения</a>
+              </li>
+            </ul>
+          </aside>
+      {% block content %}
+
+      {% endblock %}
+      </main>
+  </div>
+    <!-- <script src="https://api-maps.yandex.ru/2.1/?apikey=51092280-e018-4241-bc97-180570de25d4&lang=ru_RU&_v=20221226164248"></script> -->
+    <script src="{% static 'js/app.min.js' %}"></script>
+    <script src="{% static 'js/dropdown-search.js' %}"></script>
+</body>
+</html>

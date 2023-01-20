@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="auth">
+    <div class="auth__body">
+        <h2 class="auth__title title">Telegram-авторизация</h2>
+        <form class="content__form" method="POST">
+            {% csrf_token %}
+            <div class="auth__line line">
+            <label class="auth__label label" for="id_phone">Номер телефона:</label>
+            <input placeholder="+79000000000" class="auth__input input" type="text" name="phone" maxlength="150" required="" id="id_phone">
+            </div>
+            <button class="auth__btn btn" type="submit">Отправить код</button>
+        </form>
+    </div>
+    </div>
+
+{% endblock %}

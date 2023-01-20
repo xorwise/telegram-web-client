@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div class="auth">
+    <div class="auth__body">
+        <h2 class="auth__title title">Telegram-авторизация</h2>
+        <form class="content__form" method="POST">
+    {% csrf_token %}
+        <div class="auth__line line">
+    <label class="auth__label label" for="id_code">Код:</label>
+    <input class="auth__input input" type="number" name="code" required="" id="id_code">
+        </div>
+            <div class="auth__line line">
+    <label class="auth__label label" for="id_password">Пароль или ответ на вопрос (при необходимости):</label>
+    <input class="auth__input input" type="password" name="password" maxlength="255" id="id_password">
+            </div>
+            <p class="auth__line line">{{ result }}</p>
+    <button class="auth__btn btn" type="submit">Войти</button>
+    </form>
+    </div>
+    </div>
+{% endblock %}
