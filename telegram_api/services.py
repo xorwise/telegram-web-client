@@ -132,20 +132,22 @@ def delete_request(id: int):
     request.delete()
 
 
-async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> None:
+async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> CustomUser:
     client = TelegramClient(StringSession(user.telegram_session), TELEGRAM_API_ID, TELEGRAM_API_HASH)
     await client.connect()
+    me = await client.get_me()
     if not await client.is_user_authorized():
         await client.send_code_request(request.session.get('number'), force_sms=True)
-        phone_code_hash = await client.send_code_request(request.session.get('number')).phone_code_hash
-        request.session['phone_code_hash'] = phone_code_hash
+        result = await client.send_code_request(request.session.get('number'))
+        phone_hash = result.phone_code_hash
+        request.session['phone_code_hash'] = phone_hash
 
         user.telegram_session = client.session.save()
-        user.save()
-    elif str(await client.get_me().phone) != phone.replace('+', ''):
+        return user
+    elif str(me.phone) != phone.replace('+', ''):
         await client.send_code_request(phone, force_sms=True)
-        phone_code_hash = client.send_code_request(phone).phone_code_hash
-        request.session['phone_code_hash'] = phone_code_hash
-
+        result = await client.send_code_request(phone)
+        phone_hash = result.phone_code_hash
+        request.session['phone_code_hash'] = phone_hash
         user.telegram_session = client.session.save()
-        user.save()
+        return user

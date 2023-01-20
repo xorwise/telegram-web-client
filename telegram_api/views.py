@@ -27,7 +27,8 @@ class TelegramView(CreateView):
         asyncio.set_event_loop(loop)
 
         user = get_user(request.user.username)
-        loop.run_until_complete(send_message(request, request.POST.get('phone'), user))
+        new_user = loop.run_until_complete(send_message(request, request.POST.get('phone'), user))
+        new_user.save()
 
         return redirect('/tg/confirm')
 
