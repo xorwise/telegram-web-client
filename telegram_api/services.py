@@ -6,6 +6,7 @@ from telethon.tl.types import PeerChannel, User, Chat, Channel
 from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
 from django.http import HttpRequest
 from user.models import CustomUser
+from asgiref.sync import sync_to_async
 
 
 
@@ -107,13 +108,13 @@ async def forward_messages(client: TelegramClient, messages: list, groups: list[
             await client.forward_messages(entity=entity, messages=message)
 
 
-def get_sorted_requests() -> list[SearchRequest]:
-    active = SearchRequest.objects.all().filter(is_active=True).order_by('id').reverse()
-    inactive = SearchRequest.objects.all().filter(is_active=False).order_by('id').reverse()
-    return list(active) + list(inactive)
+async def get_sorted_requests() -> list[SearchRequest]:
+    active = await sync_to_async(lambda: SearchRequest.objects.all().filter(is_active=True).order_by('id').reverse(), thread_sensitive=True)()
+    inactive = await sync_to_async(lambda: SearchRequest.objects.all().filter(is_active=False).order_by('id').reverse(), thread_sensitive=True)()
+    return await sync_to_async(lambda: list(active) + list(inactive), thread_sensitive=True)()
 
 
-def parse_requests(requests: list[SearchRequest]) -> list[ParsedRequest]:
+async def parse_requests(requests: list[SearchRequest]) -> list[ParsedRequest]:
     new_requests = list()
     for request in requests:
         new_requests.append(ParsedRequest(request))
@@ -128,9 +129,9 @@ async def get_entity_name(client: TelegramClient, id: int):
     return entity.title
 
 
-def delete_request(id: int):
-    request = SearchRequest.objects.get(id=id)
-    request.delete()
+async def delete_request(id: int):
+    request = await sync_to_async(lambda: SearchRequest.objects.get(id=id), thread_sensitive=True)()
+    await sync_to_async(lambda: request.delete(), thread_sensitive=True)()
 
 
 async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> CustomUser:

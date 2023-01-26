@@ -22,13 +22,13 @@ class TelegramView(View):
     template_name = 'telegram_api/telegram.html'
 
     async def get(self, request, *args, **kwargs):
-        user = await sync_to_async(lambda: request.user.is_authenticated)()
-        return render(request, self.template_name, {'form': PhoneForm(), 'user': user})
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated)()
+        return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated})
 
     async def post(self, request, *args, **kwargs):
         await sync_to_async(lambda: request.session.update({"phone": request.POST.get('phone')}), thread_sensitive=True)()
-        username = await sync_to_async(lambda: request.user.username)()
-        user = await get_user(username)
+        email = await sync_to_async(lambda: request.user.email)()
+        user = await get_user(email)
         new_user = await send_message(request, request.POST.get('phone'), user)
 
         await sync_to_async(lambda: new_user.save(), thread_sensitive=True)()
@@ -40,9 +40,9 @@ class TelegramConfirmView(View):
     template_name = 'telegram_api/telegram-confirm.html'
 
     async def get(self, request, *args, **kwargs):
-        username = await sync_to_async(lambda: request.user.username, thread_sensitive=True)()
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
 
-        db_user = await get_user(username)
+        db_user = await get_user(email)
 
         telegram_client = TelegramClient(session=StringSession(db_user.telegram_session), api_id=TELEGRAM_API_ID,
                                          api_hash=TELEGRAM_API_HASH)
@@ -53,12 +53,12 @@ class TelegramConfirmView(View):
         return render(request, self.template_name, {'form': ConfirmForm(), 'result': ''})
 
     async def post(self, request, *args, **kwargs):
-        username = await sync_to_async(lambda: request.user.username, thread_sensitive=True)()
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         phone = request.session.get('phone')
         code = request.POST.get('code')
         password = request.POST.get('password')
         phone_code_hash = request.session.get('phone_code_hash')
-        db_user = await get_user(username)
+        db_user = await get_user(email)
 
         telegram_client = TelegramClient(session=StringSession(db_user.telegram_session), api_id=TELEGRAM_API_ID,
                                          api_hash=TELEGRAM_API_HASH)
@@ -110,19 +110,17 @@ class MessageSearch(View):
 class MessageQueue(View):
     template_name = 'telegram_api/message-queue.html'
 
-    def get(self, request, page: int = 0, *args, **kwargs):
-        user = request.user
-        requests = services.get_sorted_requests()
-        loop = get_async_loop()
-        client = TelegramClient(session=StringSession(user.telegram_session), api_id=TELEGRAM_API_ID,
+    async def get(self, request, page: int = 0, *args, **kwargs):
+        telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
+        requests = await services.get_sorted_requests()
+        client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                 api_hash=TELEGRAM_API_HASH)
-        client.connect()
-        parsed_requests = services.parse_requests(requests)
-        loop.stop()
+        await client.connect()
+        parsed_requests = await services.parse_requests(requests)
         return render(request, self.template_name,
                       {'requests': parsed_requests[page * 8:page * 8 + 8], 'page': page, 'len': len(requests)})
 
-    def post(self, request, page: int = 0, *args, **kwargs):
+    async def post(self, request, page: int = 0, *args, **kwargs):
         request_id = int([i for i in list(request.POST.keys()) if i.startswith('request')][0][8:])
-        services.delete_request(request_id)
+        await services.delete_request(request_id)
         return redirect('/tg/queue/')
