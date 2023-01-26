@@ -8,6 +8,7 @@ from django.http import HttpRequest
 from user.models import CustomUser
 
 
+
 async def is_telegram_authorized(client: TelegramClient) -> bool:
     await client.connect()
     return await client.is_user_authorized()
@@ -22,7 +23,7 @@ async def get_dialog_choices(client: TelegramClient) -> tuple[tuple[any, any], .
     return tuple(sorted(choices, key=lambda x: x[1]))
 
 
-def parse_request(mode: bool, keys: list) -> list:
+async def parse_request(mode: bool, keys: list) -> list:
     response = list()
     if mode:
         for key in keys:
@@ -35,8 +36,8 @@ def parse_request(mode: bool, keys: list) -> list:
     return response
 
 
-async def search(client: TelegramClient, channels, keywords, groups) -> tuple[list[any], list[User | Chat | Channel], list[any]]:
-    added_messages = list()
+async def search(client: TelegramClient, channels, keywords, groups) -> tuple[list[any], list[User | Chat | Channel], set[int]]:
+    added_messages = set()
     messages = list()
     for channel in channels:
         try:
@@ -46,7 +47,7 @@ async def search(client: TelegramClient, channels, keywords, groups) -> tuple[li
         for keyword in keywords:
             async for message in client.iter_messages(entity=entity, search=keyword):
                 messages.append(message)
-                added_messages.append(message.id)
+                added_messages.add(message.id)
     new_groups = list()
     for group in groups:
         try:
@@ -83,17 +84,17 @@ def get_active_requests() -> list[SearchRequest]:
     return SearchRequest.objects.all().filter(is_active=True)
 
 
-async def research(client: TelegramClient, channels: list[str], keywords: list[str], added_messages: list[int]) -> list:
+async def research(client: TelegramClient, channels: list[str], keywords: list[str], added_messages: set[int]) -> list:
     new_messages = list()
     for channel in channels:
         entity = await client.get_entity(channel)
         for keyword in keywords:
             async for message in client.iter_messages(entity=entity, search=keyword):
-                if message.id not in set(added_messages):
+                if message.id not in added_messages:
                     new_messages.append(message)
                 else:
                     break
-    return new_messages[::-1]
+    return new_messages
 
 
 async def forward_messages(client: TelegramClient, messages: list, groups: list[Channel]) -> None:
@@ -137,11 +138,12 @@ async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> Cu
     await client.connect()
     me = await client.get_me()
     if not await client.is_user_authorized():
-        await client.send_code_request(request.session.get('number'), force_sms=True)
-        result = await client.send_code_request(request.session.get('number'))
+        print('test2')
+        await client.send_code_request(request.session.get('phone'), force_sms=True)
+        result = await client.send_code_request(request.session.get('phone'))
         phone_hash = result.phone_code_hash
         request.session['phone_code_hash'] = phone_hash
-
+        print(user.telegram_session)
         user.telegram_session = client.session.save()
         return user
     elif str(me.phone) != phone.replace('+', ''):
@@ -151,3 +153,4 @@ async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> Cu
         request.session['phone_code_hash'] = phone_hash
         user.telegram_session = client.session.save()
         return user
+    return user

@@ -1,5 +1,7 @@
 from user.models import CustomUser
+from asgiref.sync import sync_to_async
 
 
-def get_user(username: str) -> CustomUser:
-    return CustomUser.objects.get(username=username)
+async def get_user(username: str) -> CustomUser:
+    user = await sync_to_async(lambda: CustomUser.objects.get(username=username), thread_sensitive=True)()
+    return user

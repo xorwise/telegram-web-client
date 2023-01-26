@@ -21,7 +21,7 @@
           <img src="{% static 'img/logo.png' %}" alt="concept">
         </a>
         <div class="header__right">
-            {% if user.is_authenticated %}
+            {% if user %}
           <a class="header__name" href="/profile">{{ user.get_username }}</a>
           <a href="/profile" class="header__icon">
             <img src="{% static 'img/profile-logo.jpg' %}" alt="Гарайшин Ильназ">
