@@ -40,13 +40,14 @@ class TelegramConfirmView(View):
     template_name = 'telegram_api/telegram-confirm.html'
 
     async def get(self, request, *args, **kwargs):
-
-        session = await services.get_telegram_session(request.session.get('phone'))
+        phone = await sync_to_async(lambda: request.session.get('phone'), thread_sensitive=True)()
+        session = await services.get_telegram_session(phone)
         telegram_client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID,
                                          api_hash=TELEGRAM_API_HASH)
         await telegram_client.connect()
 
         if await telegram_client.is_user_authorized():
+            print('true ')
             return redirect('/tg/search')
         return render(request, self.template_name, {'form': ConfirmForm(), 'result': ''})
 
@@ -89,7 +90,7 @@ class MessageSearch(View):
         return render(request, self.template_name, {'channels': choices, 'result': '', 'active_tg': active_session_phone})
 
     async def post(self, request, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
+        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         channels = request.POST.get('channels').replace('\n', ' ').split(' ')
         keywords = request.POST.get('keywords').split(',')
