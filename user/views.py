@@ -30,12 +30,18 @@ class LoginView(View):
         return render(request, self.template_name, {'result': ''})
 
     async def post(self, request, *args, **kwargs):
-        username = request.POST.get('username')
+        email_or_phone = request.POST.get('username')
         password = request.POST.get('password')
 
-        user = await sync_to_async(lambda: authenticate(request, username=username, password=password), thread_sensitive=True)()
+        try:
+            user = await services.get_user_by_phone(email_or_phone)
+            email = user.email
+        except CustomUser.DoesNotExist:
+            email = email_or_phone
+
+        user = await sync_to_async(lambda: authenticate(request, username=email, password=password), thread_sensitive=True)()
         if user is None:
-            return render(request, self.template_name, {'result': 'Incorrect username or password'})
+            return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was not activated.\nPlease, contact administration.'})
 
         await sync_to_async(lambda: login(request, user), thread_sensitive=True)()
         return redirect('/')
@@ -53,8 +59,8 @@ class ProfileView(View):
         return render(request, self.template_name, {'form': self.form, 'result': ''})
 
     async def post(self, request, *args, **kwargs):
-        username = await sync_to_async(lambda: request.user.username, thread_sensitive=True)()
-        user = await services.get_user(username)
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+        user = await services.get_user(email)
 
         user.email = request.POST.get('email')
         user.first_name = request.POST.get('first_name')

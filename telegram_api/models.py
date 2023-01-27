@@ -1,10 +1,13 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
-from datetime import datetime
-import nest_asyncio
-import asyncio
-from telethon.sync import TelegramClient
-from telethon.tl.types import PeerChannel
+from asgiref.sync import sync_to_async
+from user.models import CustomUser
+from django.conf import settings
+
+
+class TelegramSession(models.Model):
+    phone = models.CharField(max_length=255, primary_key=True)
+    session = models.CharField(max_length=1000)
 
 
 class Channel(models.Model):
@@ -14,7 +17,8 @@ class Channel(models.Model):
 
 class SearchRequest(models.Model):
     id = models.AutoField(primary_key=True)
-    client = models.IntegerField()
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user')
+    client = models.CharField(max_length=1000, blank=True)
     channels = ArrayField(models.CharField(max_length=255))
     keywords = ArrayField(models.CharField(max_length=100))
     groups = models.ManyToManyField(Channel, related_name='groups', blank=True)
@@ -30,11 +34,11 @@ class ParsedRequest:
     last_checked: str
     is_active: bool
 
-    def __init__(self, request: SearchRequest):
+    def __init__(self, request: SearchRequest, groups):
         self.id = request.id
         self.channels = request.channels
         new_groups = list()
-        for group in list(request.groups.all()):
+        for group in groups:
             new_groups.append(group.title)
         self.keywords = '; '.join(request.keywords)
         self.groups = '; '.join(new_groups)

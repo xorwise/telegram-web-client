@@ -4,6 +4,7 @@
     <div class="auth">
     <div class="auth__body">
         <h2 class="auth__title title">Telegram-авторизация</h2>
+        {% if user.is_active %}
         <form class="content__form" method="POST">
             {% csrf_token %}
             <div class="auth__line line">
@@ -12,6 +13,11 @@
             </div>
             <button class="auth__btn btn" type="submit">Отправить код</button>
         </form>
+        {% else %}
+        <div class="auth__line line">
+            Активируйте аккаунт, для этого свяжитесь с администрацией.
+        </div>
+        {% endif %}
     </div>
     </div>
 

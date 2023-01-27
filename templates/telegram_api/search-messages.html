@@ -3,6 +3,7 @@
 {% block content %}
       <div class="content">
         <h2 class="content__title title">Поиск сообщений в Telegram</h2>
+        <h3 class="content__subtitle">Активный аккаунт: {{ active_tg }}</h3>
         <form method="post">
           {% csrf_token %}
         <div class="dropdown-box">

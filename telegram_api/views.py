@@ -40,11 +40,9 @@ class TelegramConfirmView(View):
     template_name = 'telegram_api/telegram-confirm.html'
 
     async def get(self, request, *args, **kwargs):
-        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
 
-        db_user = await get_user(email)
-
-        telegram_client = TelegramClient(session=StringSession(db_user.telegram_session), api_id=TELEGRAM_API_ID,
+        session = await services.get_telegram_session(request.session.get('phone'))
+        telegram_client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID,
                                          api_hash=TELEGRAM_API_HASH)
         await telegram_client.connect()
 
@@ -53,14 +51,12 @@ class TelegramConfirmView(View):
         return render(request, self.template_name, {'form': ConfirmForm(), 'result': ''})
 
     async def post(self, request, *args, **kwargs):
-        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         phone = request.session.get('phone')
         code = request.POST.get('code')
         password = request.POST.get('password')
         phone_code_hash = request.session.get('phone_code_hash')
-        db_user = await get_user(email)
-
-        telegram_client = TelegramClient(session=StringSession(db_user.telegram_session), api_id=TELEGRAM_API_ID,
+        session = await services.get_telegram_session(phone)
+        telegram_client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID,
                                          api_hash=TELEGRAM_API_HASH)
         await telegram_client.connect()
 
@@ -82,22 +78,23 @@ class MessageSearch(View):
     template_name = 'telegram_api/search-messages.html'
 
     async def get(self, request, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
+        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
         client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                 api_hash=TELEGRAM_API_HASH)
         await client.connect()
         if not await client.is_user_authorized():
             return redirect('/tg')
         choices = await services.get_dialog_choices(client)
-        return render(request, self.template_name, {'channels': choices, 'result': ''})
+        active_session_phone = await services.get_active_session(telegram_session)
+        return render(request, self.template_name, {'channels': choices, 'result': '', 'active_tg': active_session_phone})
 
     async def post(self, request, *args, **kwargs):
         telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
-
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         channels = request.POST.get('channels').replace('\n', ' ').split(' ')
         keywords = request.POST.get('keywords').split(',')
         groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
-        messages_search.delay(telegram_session, channels, keywords, groups)
+        messages_search.delay(telegram_session, channels, keywords, groups, email)
 
         client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                 api_hash=TELEGRAM_API_HASH)
@@ -112,7 +109,9 @@ class MessageQueue(View):
 
     async def get(self, request, page: int = 0, *args, **kwargs):
         telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
-        requests = await services.get_sorted_requests()
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+        db_user = await get_user(email)
+        requests = await services.get_sorted_requests(db_user)
         client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                 api_hash=TELEGRAM_API_HASH)
         await client.connect()

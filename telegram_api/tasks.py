@@ -1,3 +1,4 @@
+from user.models import CustomUser
 from user.services import get_user
 from telegramweb import celery_app
 from telethon.sync import TelegramClient
@@ -9,14 +10,13 @@ from telegramweb.services import get_async_loop
 
 
 @celery_app.task()
-def messages_search(session: str, channels: list[str],  keywords: list[str], groups: list[str]):
+def messages_search(session: str, channels: list[str],  keywords: list[str], groups: list[str], email: str):
     loop = get_async_loop()
-
+    user = loop.run_until_complete(get_user(email))
     client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID, api_hash=TELEGRAM_API_HASH)
     client.connect()
 
-    client_id = loop.run_until_complete(services.get_client_id(client))
-    request = services.create_request(client_id, channels, keywords)
+    request = services.create_request(session, channels, keywords, user)
     messages, new_groups, added_messages = loop.run_until_complete(services.search(client, channels, keywords, groups))
     request.added_messages = list(added_messages)
     for group in list(new_groups):
@@ -31,16 +31,6 @@ def messages_search(session: str, channels: list[str],  keywords: list[str], gro
 @celery_app.task()
 def research_queue():
     requests = services.get_active_requests()
-
     loop = get_async_loop()
-    user = loop.run_until_complete(get_user(SUPERUSER_USERNAME))
+    services.research_queue(requests, loop)
 
-    client = TelegramClient(session=StringSession(user.telegram_session), api_id=TELEGRAM_API_ID, api_hash=TELEGRAM_API_HASH)
-    client.connect()
-
-    for request in requests:
-        new_messages = loop.run_until_complete(services.research(client=client, channels=list(request.channels), keywords=request.keywords, added_messages=request.added_messages))
-        if(len(new_messages)) > 0:
-            request.added_messages = request.added_messages + [msg.id for msg in new_messages]
-            request.save()
-        loop.run_until_complete(services.forward_messages(client=client, messages=new_messages, groups=list(request.groups.all())))

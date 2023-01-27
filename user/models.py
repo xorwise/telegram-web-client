@@ -14,19 +14,21 @@ class CustomUserManager(BaseUserManager):
     Custom user model manager where email is the unique identifiers
     for authentication instead of usernames.
     """
-    def create_user(self, email, password, **extra_fields):
+    def create_user(self, email, phone, password, **extra_fields):
         """
         Create and save a user with the given email and password.
         """
         if not email:
             raise ValueError("The Email must be set")
+        if not phone:
+            raise ValueError("The Phone must be set")
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        user = self.model(email=email, phone=phone, **extra_fields)
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, email, password, **extra_fields):
+    def create_superuser(self, email, phone, password, **extra_fields):
         """
         Create and save a SuperUser with the given email and password.
         """
@@ -38,23 +40,25 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
-        return self.create_user(email, password, **extra_fields)
+        return self.create_user(email, phone, password, **extra_fields)
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField('Почта', max_length=255, unique=True, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    email = models.EmailField('Почта', max_length=255, unique=True, blank=False)
+    phone = models.CharField('Телефон', max_length=15, blank=False, unique=True)
     first_name = models.CharField('Имя', max_length=100, default='', blank=True)
     last_name = models.CharField('Фамилия', max_length=100, default='', blank=True)
-    phone = models.CharField('Телефон', max_length=15, default='', blank=True)
     telegram = models.CharField('Телеграм', max_length=100, default='', blank=True)
-    telegram_session = models.CharField('Телеграм cессия', max_length=1000, blank=True)
+    telegram_sessions = models.ManyToManyField('telegram_api.TelegramSession', db_column='Сессии телеграм', blank=True)
+    active_session = models.CharField('Активная телеграм сессия', max_length=1000, default='', blank=True)
 
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['phone']
 
     objects = CustomUserManager()
 
