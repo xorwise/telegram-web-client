@@ -7,6 +7,7 @@ from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
 from django.http import HttpRequest
 from user.models import CustomUser
 from asgiref.sync import sync_to_async
+from user.services import get_user
 
 
 async def get_telegram_session(phone: str) -> str:
@@ -205,3 +206,19 @@ def research_queue(requests: dict, loop):
                 request.save()
             loop.run_until_complete(
                 forward_messages(client=client, messages=new_messages, groups=list(request.groups.all())))
+
+
+async def change_active_session(phone: str, email: str) -> None:
+    session = await get_telegram_session(phone)
+    db_user = await get_user(email)
+    db_user.active_session = session
+    await sync_to_async(lambda: db_user.save(), thread_sensitive=True)()
+
+
+async def get_numbers(email: str) -> list[str]:
+    db_user = await get_user(email)
+    sessions = await sync_to_async(lambda: list(db_user.telegram_sessions.all()), thread_sensitive=True)()
+    new_sessions = list()
+    for session in sessions:
+        new_sessions.append(session.phone)
+    return new_sessions

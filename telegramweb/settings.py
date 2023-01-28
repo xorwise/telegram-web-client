@@ -151,7 +151,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
 ACCOUNT_LOGOUT_ON_GET = True
 LOGIN_REDIRECT_URL = ''
-LOGOUT_REDIRECT_URL = '/login'
+LOGOUT_REDIRECT_URL = '/user/login'
 AUTH_USER_MODEL = 'user.CustomUser'
 
 DJANGO_ALLOW_ASYNC_UNSAFE = True

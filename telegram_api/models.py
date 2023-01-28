@@ -17,7 +17,8 @@ class Channel(models.Model):
 
 class SearchRequest(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user', blank=True,
+                             null=True)
     client = models.CharField(max_length=1000, blank=True)
     channels = ArrayField(models.CharField(max_length=255))
     keywords = ArrayField(models.CharField(max_length=100))

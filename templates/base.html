@@ -22,13 +22,13 @@
         </a>
         <div class="header__right">
             {% if user.is_authenticated %}
-          <a class="header__name" href="/profile">{{ user.email }}</a>
-          <a href="/profile" class="header__icon">
+          <a class="header__name" href="/user/profile">{{ user.email }}</a>
+          <a href="/user/profile" class="header__icon">
             <img src="{% static 'img/profile-logo.jpg' %}" alt="Гарайшин Ильназ">
           </a>
-               <a class="header__name" id="logout" href="/logout">выход</a>
+               <a class="header__name" id="logout" href="/user/logout">выход</a>
                 {% else %}
-               <a class="header__name" id="logout" href="/login">вход</a>
+               <a class="header__name" id="logout" href="/user/login">вход</a>
             {% endif %}
 
 
@@ -43,7 +43,7 @@
                 <a class="menu__link" href="/tg">Telegram-авторизация</a>
               </li>
               <li class="menu__item">
-                <a class="menu__link" href="/profile">Профиль</a>
+                <a class="menu__link" href="/user/profile">Профиль</a>
               </li>
               <li class="menu__item">
                 <a class="menu__link" href="/tg/search">Поиск сообщений</a>

@@ -9,16 +9,6 @@ from asgiref.sync import sync_to_async
 from user.models import CustomUser
 
 
-class UserChangeView(View):
-    template_name = 'index.html'
-
-    async def get(self, request, *args, **kwargs):
-        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
-        if is_authenticated:
-            return render(request, self.template_name, {'is_authenticated': is_authenticated})
-        return redirect('/login')
-
-
 class LoginView(View):
     template_name = 'user/login.html'
 
@@ -54,7 +44,7 @@ class ProfileView(View):
     async def get(self, request, *args, **kwargs):
         is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
         if not is_authenticated:
-            return redirect('/login')
+            return redirect('/user/login')
 
         return render(request, self.template_name, {'form': self.form, 'result': ''})
 
@@ -70,4 +60,4 @@ class ProfileView(View):
 
         await sync_to_async(lambda: user.save(), thread_sensitive=True)()
 
-        return redirect('/profile')
+        return redirect('/user/profile')

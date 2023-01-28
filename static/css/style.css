@@ -625,6 +625,10 @@ textarea.input {
           flex-direction: column;
 }
 
+.content__form{
+  margin-bottom: 20px;
+}
+
 .dropdown-box {
   border: 1px solid gray;
   border-radius: 5px;

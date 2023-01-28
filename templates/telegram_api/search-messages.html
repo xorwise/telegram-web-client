@@ -4,6 +4,16 @@
       <div class="content">
         <h2 class="content__title title">Поиск сообщений в Telegram</h2>
         <h3 class="content__subtitle">Активный аккаунт: {{ active_tg }}</h3>
+      <form class="content__form" method="post" name="session_choice">
+          {% csrf_token %}
+          <label class="content__label label">Сменить аккаунт</label>
+          <select name="number" class="content__input input">
+              {% for number in numbers %}
+                  <option value="{{number}}">{{number}}</option>
+              {% endfor %}
+          </select>
+      <button type="submit" class="content__btn btn">Выбрать</button>
+      </form>
         <form method="post">
           {% csrf_token %}
         <div class="dropdown-box">

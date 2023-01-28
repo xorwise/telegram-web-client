@@ -87,29 +87,40 @@ class MessageSearch(View):
             return redirect('/tg')
         choices = await services.get_dialog_choices(client)
         active_session_phone = await services.get_active_session(telegram_session)
-        return render(request, self.template_name, {'channels': choices, 'result': '', 'active_tg': active_session_phone})
+        numbers = await services.get_numbers(request.user.email)
+        return render(request, self.template_name, {'channels': choices, 'result': '',
+                                                    'active_tg': active_session_phone, 'numbers': numbers})
 
     async def post(self, request, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
-        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
-        channels = request.POST.get('channels').replace('\n', ' ').split(' ')
-        keywords = request.POST.get('keywords').split(',')
-        groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
-        messages_search.delay(telegram_session, channels, keywords, groups, email)
+        print(request.POST)
+        if 'number' in request.POST:
+            email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+            await services.change_active_session(request.POST.get('number'), email)
+            return redirect('/tg/search')
+        else:
+            telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
+            email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+            channels = request.POST.get('channels').replace('\n', ' ').split(' ')
+            keywords = request.POST.get('keywords').split(',')
+            groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
+            messages_search.delay(telegram_session, channels, keywords, groups, email)
 
-        client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
+            client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                 api_hash=TELEGRAM_API_HASH)
-        await client.connect()
-        choices = await services.get_dialog_choices(client)
-        return render(request, self.template_name,
-                      {'channels': choices, 'result': 'Запрос создан и добавлен в очередь!'})
+            await client.connect()
+            choices = await services.get_dialog_choices(client)
+            active_session_phone = await services.get_active_session(telegram_session)
+            numbers = await services.get_numbers(request.user.email)
+            return render(request, self.template_name, {'channels': choices, 'active_tg': active_session_phone,
+                                                        'result': 'Запрос создан и добавлен в очередь!',
+                                                        'numbers': numbers})
 
 
 class MessageQueue(View):
     template_name = 'telegram_api/message-queue.html'
 
     async def get(self, request, page: int = 0, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
+        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         db_user = await get_user(email)
         requests = await services.get_sorted_requests(db_user)
@@ -123,4 +134,4 @@ class MessageQueue(View):
     async def post(self, request, page: int = 0, *args, **kwargs):
         request_id = int([i for i in list(request.POST.keys()) if i.startswith('request')][0][8:])
         await services.delete_request(request_id)
-        return redirect('/tg/queue/')
+        return redirect('/tg/search-queue/')

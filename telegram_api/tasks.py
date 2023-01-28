@@ -25,6 +25,7 @@ def messages_search(session: str, channels: list[str],  keywords: list[str], gro
         request.groups.add(new_group)
 
     request.save()
+    print(f'{len(messages)} was found...')
     loop.run_until_complete(services.forward_messages(client=client, messages=messages, groups=new_groups))
 
 
