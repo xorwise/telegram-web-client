@@ -44,6 +44,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    """ Model of a custom user """
     id = models.AutoField(primary_key=True)
     email = models.EmailField('Почта', max_length=255, unique=True, blank=False)
     phone = models.CharField('Телефон', max_length=15, blank=False, unique=True)

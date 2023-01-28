@@ -11,7 +11,8 @@
         {% endif %}
             {% for request in requests %}
           <div class="content__item item-content">
-
+            <div class="queue-content__top">
+            <div class="content__top-left">
               <p class="item-content__title">Запрос на поиск</p>
               <p class="item-content__text">Каналы поиска:
               <br>
@@ -22,6 +23,11 @@
           <br>
                <p class="item-content__text">Ключевые слова: {{ request.keywords }}</p>
                 <p class="item-content__text">Группы для пересылки: {{ request.groups }}</p>
+            </div>
+            <div class="content__bottom-right">
+                <p class="item-content__text">Аккаунт: {{ request.client_phone }}</p>
+            </div>
+            </div>
               <div class="item-content__bottom">
                 {% if request.is_active %}
                 <span class="item-content__descr item-content__descr_green">Активно</span>

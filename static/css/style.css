@@ -804,6 +804,14 @@ textarea.input {
           flex: auto;
 }
 
+.queue-content__top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+
 .item-content__bottom {
   display: -webkit-box;
   display: -ms-flexbox;

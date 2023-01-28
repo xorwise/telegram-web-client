@@ -14,6 +14,7 @@
           </select>
       <button type="submit" class="content__btn btn">Выбрать</button>
       </form>
+      {% if is_tg_authorized %}
         <form method="post">
           {% csrf_token %}
         <div class="dropdown-box">
@@ -40,6 +41,11 @@
           </div>
             <button class="content__btn btn">Начать поиск</button>
         </form>
+      {% else %}
+      <div class="content__line line">
+          <a class="content__link link" href="/tg">Авторизуйтесь заново</a>
+      </div>
+      {% endif %}
       <div class="content__line line">
           {{ result }}
       </div>

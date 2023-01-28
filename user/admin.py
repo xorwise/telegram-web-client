@@ -82,6 +82,4 @@ class UserAdmin(BaseUserAdmin):
     filter_horizontal = ()
 
 
-# Now register the new UserAdmin...
-
 admin.site.register(CustomUser, UserAdmin)

@@ -10,6 +10,7 @@ from user.models import CustomUser
 
 
 class LoginView(View):
+    """ Class based view for user login"""
     template_name = 'user/login.html'
 
     async def get(self, request, *args, **kwargs):
@@ -38,6 +39,7 @@ class LoginView(View):
 
 
 class ProfileView(View):
+    """ Class based view for user profile"""
     template_name = 'user/profile.html'
     form = ProfileForm
 

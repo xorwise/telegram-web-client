@@ -6,20 +6,23 @@ from django.conf import settings
 
 
 class TelegramSession(models.Model):
+    """ Model of a Telegram session"""
     phone = models.CharField(max_length=255, primary_key=True)
     session = models.CharField(max_length=1000)
 
 
 class Channel(models.Model):
+    """ Model of a Telegram channel """
     id = models.BigIntegerField(primary_key=True)
     title = models.CharField(max_length=255, blank=True)
 
 
 class SearchRequest(models.Model):
+    """ Model of a search request by keywords """
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user', blank=True,
                              null=True)
-    client = models.CharField(max_length=1000, blank=True)
+    client_phone = models.CharField(max_length=15, blank=True)
     channels = ArrayField(models.CharField(max_length=255))
     keywords = ArrayField(models.CharField(max_length=100))
     groups = models.ManyToManyField(Channel, related_name='groups', blank=True)
@@ -28,12 +31,14 @@ class SearchRequest(models.Model):
 
 
 class ParsedRequest:
+    """ Search request parser to html view """
     id: int
     channels: str
     keywords: str
     groups: str
     last_checked: str
     is_active: bool
+    client_phone: str
 
     def __init__(self, request: SearchRequest, groups):
         self.id = request.id
@@ -44,6 +49,7 @@ class ParsedRequest:
         self.keywords = '; '.join(request.keywords)
         self.groups = '; '.join(new_groups)
         self.is_active = request.is_active
+        self.client_phone = request.client_phone
 
 
 
