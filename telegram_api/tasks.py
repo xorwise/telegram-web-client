@@ -1,10 +1,8 @@
-from user.models import CustomUser
 from user.services import get_user
 from telegramweb import celery_app
 from telethon.sync import TelegramClient
 from telethon.sessions import StringSession
-from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH, SUPERUSER_USERNAME
-import asyncio
+from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
 from telegram_api import services
 from telegramweb.services import get_async_loop
 
