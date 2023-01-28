@@ -32,7 +32,8 @@ class LoginView(View):
 
         user = await sync_to_async(lambda: authenticate(request, username=email, password=password), thread_sensitive=True)()
         if user is None:
-            return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was not activated.\nPlease, contact administration.'})
+            return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was '
+                                                                  'not activated.\nPlease, contact administration.'})
 
         await sync_to_async(lambda: login(request, user), thread_sensitive=True)()
         return redirect('/')

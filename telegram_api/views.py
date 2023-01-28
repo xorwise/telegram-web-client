@@ -144,3 +144,33 @@ class SearchRequestQueue(View):
         request_id = int([i for i in list(request.POST.keys()) if i.startswith('request')][0][8:])
         await services.delete_request(request_id)
         return redirect('/tg/search-queue/')
+
+
+class MessageMailing(View):
+    template_name = 'telegram_api/message-mailing.html'
+
+    def get(self, request, *args, **kwargs):
+        ...
+
+    def post(self, request, *args, **kwargs):
+        ...
+
+
+class MailingQueue(View):
+    template_name = 'telegram_api/mailing-queue.html'
+
+    def get(self, request, page: int = 0, *args, **kwargs):
+        ...
+
+    def post(self, request, page: int = 0, *args, **kwargs):
+        ...
+
+
+class MailingArchive(View):
+    template_name = 'telegram_api/mailing-archive.html'
+
+    def get(self, request, page: int = 0, *args, **kwargs):
+        ...
+
+    def post(self, request, page: int = 0, *args, **kwargs):
+        ...

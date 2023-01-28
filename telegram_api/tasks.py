@@ -36,3 +36,12 @@ def research_queue():
     requests = services.get_active_requests(loop)
     services.research_queue(requests, loop)
 
+
+@celery_app.task()
+def new_mailing():
+    ...
+
+
+@celery_app.task()
+def check_mailings():
+    ...
