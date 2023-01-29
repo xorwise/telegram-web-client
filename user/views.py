@@ -9,17 +9,8 @@ from asgiref.sync import sync_to_async
 from user.models import CustomUser
 
 
-class UserChangeView(View):
-    template_name = 'index.html'
-
-    async def get(self, request, *args, **kwargs):
-        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
-        if is_authenticated:
-            return render(request, self.template_name, {'is_authenticated': is_authenticated})
-        return redirect('/login')
-
-
 class LoginView(View):
+    """ Class based view for user login"""
     template_name = 'user/login.html'
 
     async def get(self, request, *args, **kwargs):
@@ -41,20 +32,22 @@ class LoginView(View):
 
         user = await sync_to_async(lambda: authenticate(request, username=email, password=password), thread_sensitive=True)()
         if user is None:
-            return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was not activated.\nPlease, contact administration.'})
+            return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was '
+                                                                  'not activated.\nPlease, contact administration.'})
 
         await sync_to_async(lambda: login(request, user), thread_sensitive=True)()
         return redirect('/')
 
 
 class ProfileView(View):
+    """ Class based view for user profile"""
     template_name = 'user/profile.html'
     form = ProfileForm
 
     async def get(self, request, *args, **kwargs):
         is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
         if not is_authenticated:
-            return redirect('/login')
+            return redirect('/user/login')
 
         return render(request, self.template_name, {'form': self.form, 'result': ''})
 
@@ -70,4 +63,4 @@ class ProfileView(View):
 
         await sync_to_async(lambda: user.save(), thread_sensitive=True)()
 
-        return redirect('/profile')
+        return redirect('/user/profile')

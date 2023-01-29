@@ -143,6 +143,9 @@ STATICFILES_FINDERS = (
 'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
@@ -151,7 +154,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
 ACCOUNT_LOGOUT_ON_GET = True
 LOGIN_REDIRECT_URL = ''
-LOGOUT_REDIRECT_URL = '/login'
+LOGOUT_REDIRECT_URL = '/user/login'
 AUTH_USER_MODEL = 'user.CustomUser'
 
 DJANGO_ALLOW_ASYNC_UNSAFE = True

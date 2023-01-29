@@ -625,6 +625,10 @@ textarea.input {
           flex-direction: column;
 }
 
+.content__form{
+  margin-bottom: 20px;
+}
+
 .dropdown-box {
   border: 1px solid gray;
   border-radius: 5px;
@@ -799,6 +803,14 @@ textarea.input {
       -ms-flex: auto;
           flex: auto;
 }
+
+.queue-content__top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
 
 .item-content__bottom {
   display: -webkit-box;

@@ -1,6 +1,5 @@
-from telegramweb.services import get_async_loop
 from telegram_api.services import send_message
-from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH, SITE_URL
+from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
 from django.shortcuts import render, redirect
 from django.views.generic import View
 from telethon.sync import TelegramClient
@@ -11,14 +10,10 @@ from telegram_api import services
 from telegram_api.tasks import messages_search
 from user.services import get_user
 from asgiref.sync import sync_to_async
-from django.http import HttpRequest
-from django.contrib.sessions.models import Session
-
-
-# Create your views here.
 
 
 class TelegramView(View):
+    """ Class based view for telegram authorization, phone number verification """
     template_name = 'telegram_api/telegram.html'
 
     async def get(self, request, *args, **kwargs):
@@ -26,7 +21,8 @@ class TelegramView(View):
         return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated})
 
     async def post(self, request, *args, **kwargs):
-        await sync_to_async(lambda: request.session.update({"phone": request.POST.get('phone')}), thread_sensitive=True)()
+        await sync_to_async(lambda: request.session.update({"phone": request.POST.get('phone')}),
+                            thread_sensitive=True)()
         email = await sync_to_async(lambda: request.user.email)()
         user = await get_user(email)
         new_user = await send_message(request, request.POST.get('phone'), user)
@@ -37,6 +33,7 @@ class TelegramView(View):
 
 
 class TelegramConfirmView(View):
+    """ Class based view for telegram authorization, code and password verification """
     template_name = 'telegram_api/telegram-confirm.html'
 
     async def get(self, request, *args, **kwargs):
@@ -49,33 +46,37 @@ class TelegramConfirmView(View):
         if await telegram_client.is_user_authorized():
             print('true ')
             return redirect('/tg/search')
-        return render(request, self.template_name, {'form': ConfirmForm(), 'result': ''})
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        return render(request, self.template_name, {'form': ConfirmForm(),
+                                                    'result': '',
+                                                    'is_authenticated': is_authenticated})
 
     async def post(self, request, *args, **kwargs):
-        phone = request.session.get('phone')
+        phone = await sync_to_async(lambda: request.session.get('phone'), thread_sensitive=True)()
         code = request.POST.get('code')
         password = request.POST.get('password')
-        phone_code_hash = request.session.get('phone_code_hash')
+        phone_code_hash = await sync_to_async(lambda: request.session.get('phone_code_hash'), thread_sensitive=True)()
         session = await services.get_telegram_session(phone)
         telegram_client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID,
                                          api_hash=TELEGRAM_API_HASH)
         await telegram_client.connect()
 
         try:
-            print(phone_code_hash)
-            await telegram_client.send_code_request(phone)
             await telegram_client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
         except SessionPasswordNeededError:
             try:
                 await telegram_client.sign_in(password=password)
             except PasswordHashInvalidError:
-                return render(request, self.template_name, {'form': ConfirmForm(), 'result': 'Incorrect password'})
+                return render(request, self.template_name, {'form': ConfirmForm(),
+                                                            'result': 'Incorrect password'})
         except CodeInvalidError:
-            return render(request, self.template_name, {'form': ConfirmForm(), 'result': 'Incorrect code'})
+            return render(request, self.template_name, {'form': ConfirmForm(),
+                                                        'result': 'Incorrect code'})
         return redirect('/tg/search')
 
 
 class MessageSearch(View):
+    """ Class based view for message searching and forwarding based on keywords and channels."""
     template_name = 'telegram_api/search-messages.html'
 
     async def get(self, request, *args, **kwargs):
@@ -83,33 +84,52 @@ class MessageSearch(View):
         client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                 api_hash=TELEGRAM_API_HASH)
         await client.connect()
-        if not await client.is_user_authorized():
-            return redirect('/tg')
-        choices = await services.get_dialog_choices(client)
         active_session_phone = await services.get_active_session(telegram_session)
-        return render(request, self.template_name, {'channels': choices, 'result': '', 'active_tg': active_session_phone})
+        numbers = await services.get_numbers(request.user.email)
+        if not await client.is_user_authorized():
+            return render(request, self.template_name, {'is_tg_authorized': False,
+                                                        'active_tg': active_session_phone,
+                                                        'numbers': numbers})
+        choices = await services.get_dialog_choices(client)
+        return render(request, self.template_name, {'is_tg_authorized': True,
+                                                    'channels': choices,
+                                                    'result': '',
+                                                    'active_tg': active_session_phone,
+                                                    'numbers': numbers})
 
     async def post(self, request, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
-        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
-        channels = request.POST.get('channels').replace('\n', ' ').split(' ')
-        keywords = request.POST.get('keywords').split(',')
-        groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
-        messages_search.delay(telegram_session, channels, keywords, groups, email)
+        if 'number' in request.POST:
+            email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+            await services.change_active_session(request.POST.get('number'), email)
+            return redirect('/tg/search')
+        else:
+            telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
+            email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+            channels = request.POST.get('channels').replace('\n', ' ').split(' ')
+            keywords = request.POST.get('keywords').split(',')
+            groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
+            phone = await services.get_number(telegram_session)
+            messages_search.delay(telegram_session, channels, keywords, groups, email, phone)
 
-        client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
-                                api_hash=TELEGRAM_API_HASH)
-        await client.connect()
-        choices = await services.get_dialog_choices(client)
-        return render(request, self.template_name,
-                      {'channels': choices, 'result': 'Запрос создан и добавлен в очередь!'})
+            client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
+                                    api_hash=TELEGRAM_API_HASH)
+            await client.connect()
+            choices = await services.get_dialog_choices(client)
+            active_session_phone = await services.get_active_session(telegram_session)
+            numbers = await services.get_numbers(request.user.email)
+            return render(request, self.template_name, {'is_tg_authorized': True,
+                                                        'channels': choices,
+                                                        'active_tg': active_session_phone,
+                                                        'result': 'Запрос создан и добавлен в очередь!',
+                                                        'numbers': numbers})
 
 
-class MessageQueue(View):
+class SearchRequestQueue(View):
+    """ Class based view for showing queue of search requests """
     template_name = 'telegram_api/message-queue.html'
 
     async def get(self, request, page: int = 0, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.telegram_session, thread_sensitive=True)()
+        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         db_user = await get_user(email)
         requests = await services.get_sorted_requests(db_user)
@@ -123,4 +143,34 @@ class MessageQueue(View):
     async def post(self, request, page: int = 0, *args, **kwargs):
         request_id = int([i for i in list(request.POST.keys()) if i.startswith('request')][0][8:])
         await services.delete_request(request_id)
-        return redirect('/tg/queue/')
+        return redirect('/tg/search-queue/')
+
+
+class MessageMailing(View):
+    template_name = 'telegram_api/message-mailing.html'
+
+    def get(self, request, *args, **kwargs):
+        ...
+
+    def post(self, request, *args, **kwargs):
+        ...
+
+
+class MailingQueue(View):
+    template_name = 'telegram_api/mailing-queue.html'
+
+    def get(self, request, page: int = 0, *args, **kwargs):
+        ...
+
+    def post(self, request, page: int = 0, *args, **kwargs):
+        ...
+
+
+class MailingArchive(View):
+    template_name = 'telegram_api/mailing-archive.html'
+
+    def get(self, request, page: int = 0, *args, **kwargs):
+        ...
+
+    def post(self, request, page: int = 0, *args, **kwargs):
+        ...
