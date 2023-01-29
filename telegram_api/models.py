@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from user.models import CustomUser
 from django.conf import settings
-from django.core.files import File
+
 
 class TelegramSession(models.Model):
     """ Model of a Telegram session"""
@@ -51,27 +51,22 @@ class ParsedRequest:
         self.client_phone = request.client_phone
 
 
+class File(models.Model):
+    file = models.FileField()
+
+
 class MailingRequest(models.Model):
     id = models.AutoField(primary_key=True)
     message_title = models.CharField(max_length=100)
     message_text = models.TextField()
-    message_images = ArrayField(models.ImageField(), blank=True)
-    message_files = ArrayField(models.FileField(), blank=True)
+    message_images = models.ManyToManyField(File, blank=True, related_name='mailing_images')
+    message_files = models.ManyToManyField(File, blank=True, related_name='mailing_files')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     client_phone = models.CharField(max_length=15, blank=True)
     is_active = models.BooleanField(default=True)
     is_instant = models.BooleanField(default=False)
-    send_time = ArrayField(models.DateTimeField(), blank=True)
+    groups = models.ManyToManyField(Channel, blank=True, related_name="mailing_groups")
+    send_time = ArrayField(models.DateTimeField(null=True), blank=True, null=True)
 
     def __str__(self):
         return self.message_title
-
-    def save(self, *args, **kwargs):
-        for file in self.message_files:
-            with open(f'/media/{file.name[0]}', 'w') as f:
-                file.save(file.filename, File(f))
-
-        for image in self.message_images:
-            with open(f'/media/{image.name[0]}', 'w') as f:
-                image.save(image.filename, File(f))
-        super().save()

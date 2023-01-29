@@ -5,12 +5,12 @@ from django.views.generic import View
 from telethon.sync import TelegramClient
 from telethon.errors import SessionPasswordNeededError, PasswordHashInvalidError, CodeInvalidError
 from telethon.sessions import StringSession
-from telegram_api.forms import PhoneForm, ConfirmForm
+from telegram_api.forms import PhoneForm, ConfirmForm, MailingForm
 from telegram_api import services
 from telegram_api.tasks import messages_search
 from user.services import get_user
 from asgiref.sync import sync_to_async
-
+import asyncio
 
 class TelegramView(View):
     """ Class based view for telegram authorization, phone number verification """
@@ -80,17 +80,11 @@ class MessageSearch(View):
     template_name = 'telegram_api/search-messages.html'
 
     async def get(self, request, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
-        client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
-                                api_hash=TELEGRAM_API_HASH)
-        await client.connect()
-        active_session_phone = await services.get_active_session(telegram_session)
-        numbers = await services.get_numbers(request.user.email)
-        if not await client.is_user_authorized():
+        active_session_phone, choices, client, numbers = await services.get_client_info(request)
+        if not await client.is_user_authorized() or active_session_phone == '':
             return render(request, self.template_name, {'is_tg_authorized': False,
                                                         'active_tg': active_session_phone,
                                                         'numbers': numbers})
-        choices = await services.get_dialog_choices(client)
         return render(request, self.template_name, {'is_tg_authorized': True,
                                                     'channels': choices,
                                                     'result': '',
@@ -148,13 +142,33 @@ class SearchRequestQueue(View):
 
 class MessageMailing(View):
     template_name = 'telegram_api/message-mailing.html'
+    form_class = MailingForm()
 
-    def get(self, request, *args, **kwargs):
-        ...
+    async def get(self, request, *args, **kwargs):
+        active_session_phone, choices, client, numbers = await services.get_client_info(request)
+        if not await client.is_user_authorized() or active_session_phone == '':
+            return render(request, self.template_name, {'is_tg_authorized': False,
+                                                        'active_tg': active_session_phone,
+                                                        'numbers': numbers,
+                                                        'form': self.form_class})
+        return render(request, self.template_name, {'is_tg_authorized': True,
+                                                    'channels': choices,
+                                                    'result': '',
+                                                    'active_tg': active_session_phone,
+                                                    'numbers': numbers,
+                                                    'form': self.form_class})
 
-    def post(self, request, *args, **kwargs):
-        ...
+    async def post(self, request, *args, **kwargs):
+        title = request.POST.get('title')
+        text = request.POST.get('text')
+        images = request.FILES.getlist('images')
+        files = request.FILES.getlist('files')
+        groups = [request.POST[key][6:] for key in request.POST.keys() if key.startswith('group_ ')]
+        is_instant = request.POST.get('is_instant')
+        dates = request.POST.get('dates')
 
+        await services.make_mailing_request_object(request, title, text, images, files, groups, is_instant, dates)
+        return redirect('/tg/mailing')
 
 class MailingQueue(View):
     template_name = 'telegram_api/mailing-queue.html'

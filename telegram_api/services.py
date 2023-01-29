@@ -1,6 +1,9 @@
+import os.path
+
 from telethon.sessions import StringSession
 from telethon.sync import TelegramClient
-from telegram_api.models import SearchRequest, ParsedRequest, TelegramSession
+from telegram_api.models import SearchRequest, ParsedRequest, TelegramSession, MailingRequest
+from telegram_api.models import File as DBFile
 from telegram_api.models import Channel as DBChannel
 from telethon.tl.types import PeerChannel, User, Chat, Channel
 from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
@@ -8,7 +11,10 @@ from django.http import HttpRequest
 from user.models import CustomUser
 from asgiref.sync import sync_to_async
 from user.services import get_user
-
+from django.core.files.storage import default_storage
+from django.core.files import File
+from PIL import Image
+from django.conf import settings
 
 async def get_telegram_session(phone: str) -> str:
     """ Get Telegram session from phone number """
@@ -21,7 +27,10 @@ async def get_telegram_session(phone: str) -> str:
 
 async def get_active_session(session: str) -> str:
     """ Get telegram session by string session """
-    ses = await TelegramSession.objects.aget(session=session)
+    try:
+        ses = await TelegramSession.objects.aget(session=session)
+    except TelegramSession.DoesNotExist:
+        return ''
     return ses.phone
 
 
@@ -243,3 +252,80 @@ async def get_number(session: str) -> str:
     """ Get phone number from session """
     session = await TelegramSession.objects.aget(session=session)
     return session.phone
+
+
+async def get_client_info(request):
+    telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
+    client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
+                            api_hash=TELEGRAM_API_HASH)
+    await client.connect()
+    choices = await get_dialog_choices(client)
+    active_session_phone = await get_active_session(telegram_session)
+    numbers = await get_numbers(request.user.email)
+    return active_session_phone, choices, client, numbers
+
+
+async def save_files(files):
+    new_files = list()
+    for file in files:
+        filename = file.name
+        if filename[0].upper() not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            filename = 'A' + filename
+        i = 0
+        while os.path.isfile(os.path.join(settings.MEDIA_ROOT, f'{filename[0].upper()}/{filename[:filename.rindex(".")]} ({i}) {filename[filename.rindex("."):]}')):
+            i += 1
+        else:
+            filename = filename[:filename.rindex(".")] + f' ({i})' + filename[filename.rindex("."):]
+        with default_storage.open(f'tmp/{filename}', 'wb+') as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+            new_file = DBFile()
+            await sync_to_async(lambda: new_file.file.save(f'{filename[0].upper()}/{filename}', File(f)), thread_sensitive=True)()
+            await sync_to_async(lambda: new_file.save(), thread_sensitive=True)()
+            new_files.append(new_file)
+        os.remove(f'{settings.MEDIA_ROOT}tmp/{filename}')
+    return new_files
+
+
+async def make_mailing_request_object(request, title: str, text: str, images: list, files: list, groups: list, is_instant: bool, dates: list):
+    email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+    user = await get_user(email)
+    new_mailing_request = MailingRequest(message_title=title, message_text=text, user_id=user.id, is_instant=True if is_instant == 'on' else False)
+    await sync_to_async(lambda: new_mailing_request.save(), thread_sensitive=True)()
+    new_images = await save_files(images)
+    new_files = await save_files(files)
+    await sync_to_async(lambda: new_mailing_request.message_images.set(new_images), thread_sensitive=True)()
+    await sync_to_async(lambda: new_mailing_request.message_files.set(new_files), thread_sensitive=True)()
+
+    entity_groups = await get_groups_entity(request, groups)
+    new_groups = list()
+    for group in entity_groups:
+        channel = create_channel(group)
+        new_groups.append(channel)
+    await sync_to_async(lambda: new_mailing_request.groups.set(new_groups), thread_sensitive=True)()
+    await sync_to_async(lambda: new_mailing_request.save(), thread_sensitive=True)()
+
+
+
+
+async def get_groups_entity(request, groups: list[str]):
+    session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
+
+    client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID, api_hash=TELEGRAM_API_HASH)
+    await client.connect()
+    new_groups = list()
+    for group in groups:
+        try:
+            entity = await client.get_entity(int(group))
+        except ValueError:
+            entity = await client.get_entity(PeerChannel(int(group)))
+        new_groups.append(entity)
+    return new_groups
+
+
+async def get_last_mailing():
+    mailing: MailingRequest = await sync_to_async(lambda: list(MailingRequest.objects.all())[-1], thread_sensitive=True)()
+    images = list()
+    for image in mailing.message_images:
+        images.append(image.url)
+    return images

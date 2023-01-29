@@ -2,11 +2,38 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 # Create your views here.
 from user import services
-from user.forms import ProfileForm
+from user.forms import ProfileForm, RegisterForm
 from django.contrib.auth import authenticate, login
 from asgiref.sync import sync_to_async
 
-from user.models import CustomUser
+from user.models import CustomUser, CustomUserManager
+
+
+class RegisterView(View):
+    template_name = 'user/register.html'
+    form_class = RegisterForm()
+
+    async def get(self, request, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if is_authenticated:
+            return redirect('/')
+        return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': ''})
+
+    async def post(self, request, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if is_authenticated:
+            return redirect('/')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        is_valid = await services.validate_password(password1, password2)
+
+        if is_valid:
+            await sync_to_async(lambda: CustomUser.objects.create_user(email=email, phone=phone, password=password1), thread_sensitive=True)()
+
+        return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': 'Аккаунт был создан.\nПожалуйста, свяжитесь с администрацией для активации.'})
 
 
 class LoginView(View):
@@ -30,7 +57,8 @@ class LoginView(View):
         except CustomUser.DoesNotExist:
             email = email_or_phone
 
-        user = await sync_to_async(lambda: authenticate(request, username=email, password=password), thread_sensitive=True)()
+        user = await sync_to_async(lambda: authenticate(request, username=email, password=password),
+                                   thread_sensitive=True)()
         if user is None:
             return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was '
                                                                   'not activated.\nPlease, contact administration.'})

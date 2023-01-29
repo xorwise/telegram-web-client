@@ -1,4 +1,5 @@
 from django import forms
+from telegram_api.models import MailingRequest
 
 
 class PhoneForm(forms.Form):
@@ -24,3 +25,9 @@ class SearchForm(forms.Form):
     keywords = forms.CharField(max_length=255)
     groups = forms.CharField(max_length=255)
 
+
+class MailingForm(forms.ModelForm):
+
+    class Meta:
+        model = MailingRequest
+        fields = ('message_title', 'message_text', 'message_images', 'message_files', 'groups', 'is_instant', 'send_time')
