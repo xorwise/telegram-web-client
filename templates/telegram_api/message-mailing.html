@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
       <div class="content">
         <h2 class="content__title title">Отправка сообщений</h2>
@@ -15,18 +16,31 @@
       {% if is_tg_authorized %}
         <form class="content__form" action="#" method="post" enctype="multipart/form-data">
             {% csrf_token %}
-    <label for="id_title">Title:</label>
-    <input type="text" name="title" maxlength="100" id="id_title">
-    <label for="id_text">Text:</label>
-    <textarea name="text" cols="40" rows="10" maxlength="2000" id="id_text"></textarea>
-    <label for="id_images">Images:</label>
+        <div class="content__line line">
+    <label class="content__label label" for="id_title">Заголовок:</label>
+    <input class="content__input input" type="text" name="title" maxlength="100" id="id_title">
+        </div>
+        <div class="content__line line">
+    <label class="content__label" for="id_text">Текст сообщения:</label>
+    <textarea name="text" cols="40" class="content__textarea textarea" rows="10" maxlength="2000" id="id_text"></textarea>
+        </div>
+    <label class="content__label label" for="id_images">Изображения:</label>
     <input type="file" name="images" accept="image/*" id="id_images" multiple>
-    <label for="id_files">Files:</label>
+        <br>
+    <label class="content__label label" for="id_files">Файлы:</label>
     <input type="file" name="files" id="id_files" multiple>
-    <label for="id_is_instant">Is instant:</label>
-    <input type="checkbox" name="is_instant" required="" id="id_is_instant">
-    <label for="id_dates">Dates:</label>
-    <textarea name="dates" cols="40" rows="10" maxlength="1000" id="id_dates"></textarea>
+        <br>
+    <label class="content__label label" for="id_is_instant">Моментальное отправление:</label>
+    <input class="content__label label" checked type="checkbox" name="is_instant" id="id_is_instant">
+        <div class="content__line line">
+            <select name="date_format" id="mailing__date__format">
+                <option value="periodical">Периодически</option>
+                <option value="dates">Определенное время</option>
+            </select>
+    <label for="id_dates">Времена:</label>
+            <input id="datetimepicker" type="text">
+        </div>
+        <div class="content__line line">
             <div class="dropdown-box">
                <label class="content__label label" style="font-size: 1.35rem">Список групп:</label>
                 <input class="content__input input" id="dropdownInput2" type="text" placeholder="Поиск...">
@@ -39,7 +53,10 @@
                 {% endfor %}
                 </div>
           </div>
+        </div>
+        <div class="content__line line">
             <button type="submit" class="btn btn-primary">Отправить</button>
+        </div>
         </form>
       {% else %}
       <div class="content__line line">
@@ -47,4 +64,10 @@
       </div>
       {% endif %}
       </div>
+
+
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/moment.js' %}"></script>
+    <script src="{% static 'js/daterangepicker.js' %}"></script>
+    <script src="{% static 'js/datetime-picker.js' %}"></script>
 {% endblock %}

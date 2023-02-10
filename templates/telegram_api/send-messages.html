@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content">
+        <h2 class="content__title title">Отправка сообщений</h2>
+        <form class="content__form" action="#">
+          <div class="content__line line">
+            <label class="content__label label" for="title-post">Заголовок сообщения</label>
+            <input class="input content__input" id="title-post" autocomplete="off" type="text" name="form[]">
+          </div>
+          <div class="content__line line">
+            <label class="content__label label" for="chn">Список каналов</label>
+            <input class="input content__input" id="chn" autocomplete="off" type="text" name="form[]">
+          </div>
+          <div class="content__line line">
+            <label class="content__label label" for="text-post">Текст сообщений</label>
+            <textarea class="textarea content__textarea" id="text-post" autocomplete="off" type="text" name="form[]"></textarea>
+          </div>
+          <div class="content__line line">
+            <label class="content__label label" for="channels-post">Файлы:</label>
+            <input class="content__input" multiple="multiple" autocomplete="off" type="file" name="form[]">
+          </div>
+          <div class="content__wrapper">
+            <div class="content__row">
+              <div class="content__line">
+                <label class="content__label label" for="form-0">Дата и время отправки:</label>
+                <input class="content__input input_date" id="form-0" autocomplete="off" type="datetime-local" value="2017-06-01T08:30" name="form[]">
+              </div>
+              <div class="content__checkbox checkbox">
+                <input class="checkbox__input" id="c_0" type="checkbox" value="0" name="form[]">
+                <label class="checkbox__label" for="c_0">
+                  <span class="checkbox__text">Повторять</span>
+                </label>
+              </div>
+              <select class="content__select" data-sel="c_0" name="form-sel-0">
+                <option value="form-01" selected>Каждый день</option>
+                <option value="form-02">Через день</option>
+                <option value="form-03">Через 2 дня</option>
+                <option value="form-04">Через 3 дня</option>
+                <option value="form-05">Через каждые 4 дня</option>
+                <option value="form-06">Через каждые 5 дней</option>
+                <option value="form-07">Через каждые 6 дней</option>
+                <option value="form-08">Раз в неделю</option>
+                <option value="form-09">Каждый понедельник</option>
+                <option value="form-010">Каждый вторник</option>
+                <option value="form-011">Каждую среду</option>
+                <option value="form-012">Каждый четверг</option>
+                <option value="form-013">Каждую пятницу</option>
+                <option value="form-014">Каждую субботу</option>
+                <option value="form-015">Каждое воскресенье</option>
+              </select>
+            </div>
+          </div>
+          <button class="content__btn btn" type="button">Добавить дату и время публикации</button>
+          <div class="content__btn-wrapper">
+
+            <button class="content__btn btn">Опубликовать</button>
+          </div>
+        </form>
+      </div>
+{% endblock %}
