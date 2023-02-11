@@ -87,7 +87,7 @@ class MailingRequest(models.Model):
     is_active = models.BooleanField(default=True)
     is_instant = models.BooleanField(default=False)
     groups = models.ManyToManyField(Channel, blank=True, related_name="mailing_groups")
-    send_time = ArrayField(models.DateTimeField(null=True), blank=True, null=True)
+    send_time = ArrayField(models.DateTimeField(null=True), blank=True, null=True, default=list)
 
     def __str__(self):
         return self.message_title if self.message_title != '' else self.id
