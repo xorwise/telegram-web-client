@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
+
       <div class="content">
         <h2 class="content__title title">Отправка сообщений</h2>
       <form class="content__form" method="post" name="session_choice">
@@ -32,14 +33,41 @@
         <br>
     <label class="content__label label" for="id_is_instant">Моментальное отправление:</label>
     <input class="content__label label" checked type="checkbox" name="is_instant" id="id_is_instant">
-        <div class="content__line line">
-            <select name="date_format" id="mailing__date__format">
+        <div class="content__line line" id="mailing__date__format">
+            <label for="mailing__date__select">Формат даты:</label>
+            <select class="input" name="date_format" id="mailing__date__select">
                 <option value="periodical">Периодически</option>
-                <option value="dates">Определенное время</option>
+                <option value="particular">Определенное время</option>
             </select>
-    <label for="id_dates">Времена:</label>
-            <input id="datetimepicker" type="text">
         </div>
+            <div id="periodical__dates" class="content__line line">
+                <label for="id_begin" class="content__label label">Время начала:</label>
+                <input name="begin_time" id="id_begin" type="datetime-local" class="content__input input">
+                <br>
+                <label for="id_end" class="content__label label">Время конца: </label>
+                <input name="end_time" id="id_end" type="datetime-local" class="content__input input">
+                <br>
+                <label for="id_interval" class="content__label label">Повторять каждые:</label>
+                <input name="intervals_number" id="id_interval" type="number" class="content__input input">
+                <select name="interval" class="input">
+                    <option value="weeks">недель</option>
+                    <option value="days">дней</option>
+                    <option value="hours">часов</option>
+                    <option value="minutes">минут</option>
+                </select>
+            </div>
+            <div class="content__line line" id="particular__dates">
+               <label class="label" for="datePick">Дни отправки:</label>
+                <input name="dates" class="input" id="datePick" type="text">
+                <label for="id_time" class="content__label label">Время</label>
+                   <input name="time" type="time" class="input" id="id_time">
+        <script>
+            $(document).ready(function () {
+                $('#datePick').multiDatesPicker();
+            });
+        </script>
+            </div>
+
         <div class="content__line line">
             <div class="dropdown-box">
                <label class="content__label label" style="font-size: 1.35rem">Список групп:</label>
@@ -64,10 +92,4 @@
       </div>
       {% endif %}
       </div>
-
-
-    <script src="{% static 'js/jquery.js' %}"></script>
-    <script src="{% static 'js/moment.js' %}"></script>
-    <script src="{% static 'js/daterangepicker.js' %}"></script>
-    <script src="{% static 'js/datetime-picker.js' %}"></script>
 {% endblock %}

@@ -103,7 +103,12 @@ class MessageSearch(View):
             keywords = request.POST.get('keywords').split(',')
             groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
             phone = await services.get_number(telegram_session)
-            messages_search.delay(telegram_session, channels, keywords, groups, email, phone)
+            try:
+                messages_search.delay(telegram_session, channels, keywords, groups, email, phone)
+            except ValueError:
+                result = 'Канал(ы) не был(и) найден(ы).'
+            else:
+                result = 'Запрос создан и добавлен в очередь!'
 
             client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                     api_hash=TELEGRAM_API_HASH)
@@ -114,22 +119,18 @@ class MessageSearch(View):
             return render(request, self.template_name, {'is_tg_authorized': True,
                                                         'channels': choices,
                                                         'active_tg': active_session_phone,
-                                                        'result': 'Запрос создан и добавлен в очередь!',
+                                                        'result': result,
                                                         'numbers': numbers})
 
 
 class SearchRequestQueue(View):
     """ Class based view for showing queue of search requests """
-    template_name = 'telegram_api/message-queue.html'
+    template_name = 'telegram_api/search-queue.html'
 
     async def get(self, request, page: int = 0, *args, **kwargs):
-        telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         db_user = await get_user(email)
         requests = await services.get_sorted_requests(db_user)
-        client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
-                                api_hash=TELEGRAM_API_HASH)
-        await client.connect()
         parsed_requests = await services.parse_requests(requests)
         return render(request, self.template_name,
                       {'requests': parsed_requests[page * 8:page * 8 + 8], 'page': page, 'len': len(requests)})
@@ -149,42 +150,85 @@ class MessageMailing(View):
         if not await client.is_user_authorized() or active_session_phone == '':
             return render(request, self.template_name, {'is_tg_authorized': False,
                                                         'active_tg': active_session_phone,
-                                                        'numbers': numbers,
-                                                        'form': self.form_class})
+                                                        'numbers': numbers})
         return render(request, self.template_name, {'is_tg_authorized': True,
                                                     'channels': choices,
                                                     'result': '',
                                                     'active_tg': active_session_phone,
-                                                    'numbers': numbers,
-                                                    'form': self.form_class})
+                                                    'numbers': numbers})
 
     async def post(self, request, *args, **kwargs):
         title = request.POST.get('title')
         text = request.POST.get('text')
         images = request.FILES.getlist('images')
         files = request.FILES.getlist('files')
-        groups = [request.POST[key][6:] for key in request.POST.keys() if key.startswith('group_ ')]
+        print(request.POST.keys())
+        groups = [key[6:] for key in request.POST.keys() if key.startswith('group_')]
         is_instant = request.POST.get('is_instant')
-        dates = request.POST.get('dates')
 
-        await services.make_mailing_request_object(request, title, text, images, files, groups, is_instant, dates)
+        mailing_time = list()
+        begin_time = None
+        end_time = None
+        intervals_number = None
+        interval = None
+        date_format = None
+        if not is_instant:
+            date_format = request.POST.get('date_format')
+            if date_format == 'periodical':
+                begin_time = request.POST.get('begin_time')
+                end_time = request.POST.get('end_time')
+                intervals_number = request.POST.get('intervals_number')
+                interval = request.POST.get('interval')
+                mailing_time = await services.parse_periodical_dates(begin_time, end_time, intervals_number, interval)
+            elif date_format == 'particular':
+                dates = request.POST.get('dates').split(',')
+                time = request.POST.get('time')
+                mailing_time = await services.parse_particular_dates(dates, time)
+
+        await services.make_mailing_request_object(request, title, text, images, files, groups, is_instant,
+                                                   mailing_time, date_format, begin_time,
+                                                   end_time, intervals_number, interval)
         return redirect('/tg/mailing')
 
 class MailingQueue(View):
     template_name = 'telegram_api/mailing-queue.html'
 
-    def get(self, request, page: int = 0, *args, **kwargs):
-        ...
+    async def get(self, request, page: int = 0, *args, **kwargs):
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+        user = await get_user(email)
+        mailings = await services.get_active_mailings_by_user(user)
+        parsed_mailings = await services.parse_mailings(mailings)
+        return render(request, self.template_name, {
+            'mailings': parsed_mailings[page * 8: page * 8 + 8],
+            'page': page,
+            'len': len(parsed_mailings),
+        })
 
-    def post(self, request, page: int = 0, *args, **kwargs):
-        ...
+    async def post(self, request, page: int = 0, *args, **kwargs):
+        keys = list(request.POST.keys())
+        print(keys)
+        mailing_id = [key[8:] for key in keys if key.startswith('mailing_')][0]
+        await services.make_mailing_inactive(mailing_id)
+        return redirect('/tg/mailing-queue')
 
 
 class MailingArchive(View):
     template_name = 'telegram_api/mailing-archive.html'
 
-    def get(self, request, page: int = 0, *args, **kwargs):
-        ...
+    async def get(self, request, page: int = 0, *args, **kwargs):
+        email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+        user = await get_user(email)
+        mailings = await services.get_inactive_mailings_by_user(user)
+        parsed_mailings = await services.parse_mailings(mailings)
+        return render(request, self.template_name, {
+            'mailings': parsed_mailings[page * 8: page * 8 + 8],
+            'page': page,
+            'len': len(parsed_mailings),
+        })
 
-    def post(self, request, page: int = 0, *args, **kwargs):
-        ...
+    async def post(self, request, page: int = 0, *args, **kwargs):
+        keys = list(request.POST.keys())
+        print(keys)
+        mailing_id = [key[8:] for key in keys if key.startswith('mailing_')][0]
+        await services.make_mailing_active(mailing_id)
+        return redirect('/tg/mailing-archive')

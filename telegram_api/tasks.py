@@ -19,7 +19,7 @@ def messages_search(session: str, channels: list[str],  keywords: list[str], gro
     messages, new_groups, added_messages = loop.run_until_complete(services.search(client, channels, keywords, groups))
     request.added_messages = list(added_messages)
     for group in list(new_groups):
-        new_group = services.create_channel(group)
+        new_group = loop.run_until_complete(services.create_channel(group))
         request.groups.add(new_group)
 
     request.save()
@@ -28,16 +28,22 @@ def messages_search(session: str, channels: list[str],  keywords: list[str], gro
 
 
 @celery_app.task()
-def research_queue():
+def check_tasks():
     """ Celery task for research queue of search requests """
     loop = get_async_loop()
     requests = services.get_active_requests(loop)
     services.research_queue(requests, loop)
 
+    mailings = services.get_active_mailings()
+    loop.run_until_complete(services.check_mailings(mailings))
+
 
 @celery_app.task()
-def new_mailing():
-    ...
+def send_message(id: int):
+    mailing_request = services.get_mailing_request(id)
+    loop = get_async_loop()
+    loop.run_until_complete(services.send_mailing(mailing_request))
+    print('Success')
 
 
 @celery_app.task()

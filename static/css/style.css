@@ -457,6 +457,8 @@ textarea.input {
   width: 100%;
 }
 
+
+
 .header__right {
   display: -webkit-box;
   display: -ms-flexbox;
@@ -640,6 +642,18 @@ textarea.input {
   font-size: 1.25rem;
 }
 
+#mailing__date__format {
+  display: none;
+}
+
+#periodical__dates {
+  display: none;
+}
+
+#particular__dates {
+  display: none;
+}
+
 .content__spollers-wrapper {
   -webkit-box-flex: 1;
       -ms-flex: 1 1 100%;
@@ -813,8 +827,6 @@ textarea.input {
 
 
 .item-content__bottom {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
   -webkit-box-pack: justify;
       -ms-flex-pack: justify;
@@ -825,6 +837,12 @@ textarea.input {
   -ms-flex-wrap: wrap;
       flex-wrap: wrap;
   row-gap: 0.625rem;
+}
+
+.item-archive__bottom {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .item-content__link {

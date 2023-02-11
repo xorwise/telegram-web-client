@@ -7,10 +7,15 @@
   <meta charset="UTF-8">
   <meta name="format-detection" content="telephone=no">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/daterangepicker.css' %}">
+    <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+
   <!-- <link rel="shortcut icon" href="img/favicon.ico"> -->
   <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/dubrox/Multiple-Dates-Picker-for-jQuery-UI@master/jquery-ui.multidatespicker.js"></script>
+    <script src="{% static 'js/datetime-picker.js' %}" defer></script>
 </head>
 
 <body>
@@ -53,13 +58,13 @@
                 <a class="menu__link" href="/tg/search-queue/">Очередь запросов поиска</a>
               </li>
               <li class="menu__item">
-                <a class="menu__link" href="telegram_api/message-mailing.html">Отправка сообщений</a>
+                <a class="menu__link" href="/tg/mailing/">Отправка сообщений</a>
               </li>
                 <li class="menu__item">
-                <a class="menu__link" href="/tg/message-queue/">Очередь сообщений</a>
+                <a class="menu__link" href="/tg/mailing-queue/">Очередь сообщений</a>
               </li>
               <li class="menu__item">
-                <a class="menu__link" href="telegram_api/message-archive.html">Архивированные
+                <a class="menu__link" href="/tg/mailing-archive/">Архивированные
                   сообщения</a>
               </li>
             </ul>
@@ -82,13 +87,13 @@
                 <a class="left-menu__link" href="/tg/search-queue/">Очередь запросов поиска</a>
               </li>
               <li class="left-menu__item">
-                <a class="left-menu__link" href="telegram_api/message-mailing.html">Отправка сообщений</a>
+                <a class="left-menu__link" href="/tg/mailing">Отправка сообщений</a>
               </li>
                 <li class="left-menu__item">
-                <a class="left-menu__link" href="/tg/message-queue/">Очередь сообщений</a>
+                <a class="left-menu__link" href="/tg/mailing-queue/">Очередь сообщений</a>
               </li>
               <li class="left-menu__item">
-                <a class="left-menu__link" href="telegram_api/message-archive.html">Архивированные
+                <a class="left-menu__link" href="/tg/mailing-archive/">Архивированные
                   сообщения</a>
               </li>
             </ul>

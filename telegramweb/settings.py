@@ -167,7 +167,7 @@ CELERY_TIMEZONE = 'Europe/Moscow'
 
 CELERY_BEAT_SCHEDULE = {
       'add-every-1-minute': {
-        'task': 'telegram_api.tasks.research_queue',
+        'task': 'telegram_api.tasks.check_tasks',
         'schedule': 60.0,
         'options': {
             'expires': 15.0,

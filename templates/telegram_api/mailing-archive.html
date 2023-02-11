@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load mathfilters %}
+{% block content %}
+      <div class="content">
+        <h2 class="content__title title">Очередь рассылки сообщений</h2>
+        <div class="content__list">
+        {% if len is 0 %}
+        <div class="content__line line">
+            Рассылки не были найдены! Создайте рассылку в разделе "Отправка".
+        </div>
+        {% endif %}
+            {% for mailing in mailings %}
+          <div class="content__item item-content">
+            <div class="queue-content__top">
+            <div class="content__top-left">
+              <p class="item-content__title">{{ mailing.title }}</p>
+              <p class="item-content__text">
+                  {{ mailing.text }}
+              </p>
+          <br>
+               <p class="item-content__text">Количество изображений: {{ mailing.images }}</p>
+                <p class="item-content__text">Количество файлов: {{ mailing.files }}</p>
+                {% if mailing.date_format is 1 %}
+                    <p class="item-content__text">Время начала: {{ mailing.begin_time }}</p>
+                   <p class="item-content__text">Время конца: {{ mailing.end_time }}</p>
+                    <p class="item-content__text">Отправлять каждые {{ mailing.interval_duration }} {{ mailing.interval_time }}</p>
+                {% endif %}
+                {% if mailing.date_format is 2 %}
+                <p class="item-content__text">Время отправления: {{ mailing.dates }}</p>
+                {% endif %}
+                {% if mailing.date_format is 3 %}
+                <p class="item-content__text">Моментально</p>
+                {% endif %}
+
+            </div>
+            <div class="content__bottom-right">
+                <p class="item-content__text">Аккаунт: {{ mailing.client_phone }}</p>
+            </div>
+            </div>
+              <div class="item-archive__bottom ">
+                {% if mailing.is_instant is False %}
+                  <form method="post">
+                      {% csrf_token %}
+                      <button class="item-content__link btn" name="mailing_{{ mailing.id }}" type="submit">Старт</button>
+                  </form>
+                {% endif %}
+        </div>
+          </div>
+              {% endfor %}
+        <div class="pagging">
+            {% if page > 0 %}
+          <a class="pagging__arrow" href="/tg/mailing-archive/{{ page|add:-1 }}">&lt;&lt;</a>
+            {% endif %}
+          <ul class="pagging__list">
+            <li>
+              <a class="pagging__item _active" href="">{{ page|add:1 }}</a>
+            </li>
+          </ul>
+        {% if len > page|mul:8|add:8 %}
+          <a class="pagging__arrow" href="/tg/mailing-archive/{{ page | add:1 }}">&gt;&gt;</a>
+        {% endif %}
+        </div>
+      </div>
+      </div>
+{% endblock %}

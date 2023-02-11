@@ -45,7 +45,7 @@
               {% endfor %}
         <div class="pagging">
             {% if page > 0 %}
-          <a class="pagging__arrow" href="/tg/queue/{{ page|add:-1 }}">&lt;&lt;</a>
+          <a class="pagging__arrow" href="/tg/search-queue/{{ page|add:-1 }}">&lt;&lt;</a>
             {% endif %}
           <ul class="pagging__list">
             <li>
@@ -53,7 +53,7 @@
             </li>
           </ul>
         {% if len > page|mul:8|add:8 %}
-          <a class="pagging__arrow" href="/tg/queue/{{ page | add:1 }}">&gt;&gt;</a>
+          <a class="pagging__arrow" href="/tg/search-queue/{{ page | add:1 }}">&gt;&gt;</a>
         {% endif %}
         </div>
       </div>

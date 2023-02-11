@@ -1,8 +1,10 @@
+import asyncio
 import os.path
-
+from typing import Any
+from datetime import datetime, date, timedelta
 from telethon.sessions import StringSession
 from telethon.sync import TelegramClient
-from telegram_api.models import SearchRequest, ParsedRequest, TelegramSession, MailingRequest
+from telegram_api.models import SearchRequest, ParsedRequest, TelegramSession, MailingRequest, ParsedMailing
 from telegram_api.models import File as DBFile
 from telegram_api.models import Channel as DBChannel
 from telethon.tl.types import PeerChannel, User, Chat, Channel
@@ -13,8 +15,9 @@ from asgiref.sync import sync_to_async
 from user.services import get_user
 from django.core.files.storage import default_storage
 from django.core.files import File
-from PIL import Image
+from django.utils import timezone
 from django.conf import settings
+from telegram_api import tasks
 
 async def get_telegram_session(phone: str) -> str:
     """ Get Telegram session from phone number """
@@ -66,8 +69,8 @@ async def parse_request(mode: bool, keys: list) -> list[str]:
     return response
 
 
-async def search(client: TelegramClient, channels, keywords, groups) -> tuple[list[any], set[int], list[User | Chat |
-                                                                                                        Channel]]:
+async def search(client: TelegramClient, channels, keywords, groups) -> tuple[
+    list[Any], list[User | Chat | Channel], set[Any]]:
     """ Search messages by keywords from channels """
     added_messages = set()
     messages = list()
@@ -96,15 +99,15 @@ def create_request(phone: str, channels: list[str], keywords: list[str], user: C
     return request
 
 
-def create_channel(channel: User | Chat | Channel) -> DBChannel:
+async def create_channel(channel: User | Chat | Channel) -> DBChannel:
     """ Create Channel object """
     try:
-        new_channel = DBChannel.objects.get(id=channel.id)
+        new_channel = await DBChannel.objects.aget(id=channel.id)
     except DBChannel.DoesNotExist:
         try:
-            new_channel = DBChannel.objects.create(id=channel.id, title=channel.title)
+            new_channel = await DBChannel.objects.acreate(id=channel.id, title=channel.title)
         except AttributeError:
-            new_channel = DBChannel.objects.create(id=channel.id, title=(
+            new_channel = await DBChannel.objects.acreate(id=channel.id, title=(
                 '' if channel.first_name is None else channel.first_name + ' ' +
                                                       '' if channel.last_name is None else channel.last_name))
     return new_channel
@@ -192,11 +195,11 @@ async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> Cu
     me = await client.get_me()
     if not await client.is_user_authorized():
         print('test2')
-        await client.send_code_request(request.session.get('phone'), force_sms=True)
+        await client.send_code_request(request.session.get('phone'))
         result = await client.send_code_request(request.session.get('phone'))
         await adjust_user_active_session(client, phone, request, result, user)
     elif str(me.phone) != phone.replace('+', ''):
-        await client.send_code_request(phone, force_sms=True)
+        await client.send_code_request(phone)
         result = await client.send_code_request(phone)
         await adjust_user_active_session(client, phone, request, result, user)
     return user
@@ -287,23 +290,47 @@ async def save_files(files):
     return new_files
 
 
-async def make_mailing_request_object(request, title: str, text: str, images: list, files: list, groups: list, is_instant: bool, dates: list):
+async def make_mailing_request_object(request, title: str, text: str, images: list, files: list, groups: list,
+                                      is_instant: str | None, dates: list, date_format: str = None, begin_time: str = None,
+                                      end_time: str = None, intervals_number: int = None, interval: str = None):
     email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
     user = await get_user(email)
     new_mailing_request = MailingRequest(message_title=title, message_text=text, user_id=user.id, is_instant=True if is_instant == 'on' else False)
     await sync_to_async(lambda: new_mailing_request.save(), thread_sensitive=True)()
-    new_images = await save_files(images)
-    new_files = await save_files(files)
-    await sync_to_async(lambda: new_mailing_request.message_images.set(new_images), thread_sensitive=True)()
-    await sync_to_async(lambda: new_mailing_request.message_files.set(new_files), thread_sensitive=True)()
+    if len(images) > 0:
+        new_images = await save_files(images)
+        await sync_to_async(lambda: new_mailing_request.message_images.set(new_images), thread_sensitive=True)()
+    if len(files) > 0:
+        new_files = await save_files(files)
+        await sync_to_async(lambda: new_mailing_request.message_files.set(new_files), thread_sensitive=True)()
 
     entity_groups = await get_groups_entity(request, groups)
     new_groups = list()
     for group in entity_groups:
-        channel = create_channel(group)
+        channel = await create_channel(group)
         new_groups.append(channel)
+    client_phone = await get_active_session(user.active_session)
+    new_mailing_request.client_phone = client_phone
+    new_mailing_request.send_time = dates
+    if date_format:
+        match date_format:
+            case 'periodical':
+                new_mailing_request.date_format = 1
+            case 'particular':
+                new_mailing_request.date_format = 2
+            case _:
+                new_mailing_request.date_format = 3
+
+    if date_format == 'periodical':
+        new_mailing_request.begin_time = datetime.strptime(begin_time, '%Y-%m-%dT%H:%M')
+        new_mailing_request.end_time = datetime.strptime(end_time, '%Y-%m-%dT%H:%M')
+        new_mailing_request.interval_duration = intervals_number
+        new_mailing_request.interval_time = interval
+
     await sync_to_async(lambda: new_mailing_request.groups.set(new_groups), thread_sensitive=True)()
     await sync_to_async(lambda: new_mailing_request.save(), thread_sensitive=True)()
+    if is_instant:
+        tasks.send_message.delay(new_mailing_request.id)
 
 
 
@@ -329,3 +356,129 @@ async def get_last_mailing():
     for image in mailing.message_images:
         images.append(image.url)
     return images
+
+
+async def parse_periodical_dates(begin_time: str, end_time: str, intervals_number: int, interval: str) -> list[datetime]:
+    dates = list()
+    new_begin_time = datetime.strptime(begin_time, '%Y-%m-%dT%H:%M')
+    new_end_time = datetime.strptime(end_time, '%Y-%m-%dT%H:%M')
+    dates.append(new_begin_time)
+    while dates[-1] < new_end_time:
+        if interval == 'weeks':
+            dates.append(dates[-1] + timedelta(weeks=int(intervals_number)))
+        elif interval == 'days':
+            dates.append(dates[-1] + timedelta(days=int(intervals_number)))
+        elif interval == 'hours':
+            dates.append(dates[-1] + timedelta(hours=int(intervals_number)))
+        else:
+            dates.append(dates[-1] + timedelta(minutes=int(intervals_number)))
+    else:
+        del dates[-1]
+    return dates
+
+
+async def parse_particular_dates(dates: list[str], time: str) -> list[datetime]:
+    new_dates = list()
+    for d in dates:
+        new_dates.append(datetime.strptime(f'{d}T{time}', '%m/%d/%YT%H:%M'))
+    return sorted(new_dates)
+
+
+def get_mailing_request(id: int):
+    request = MailingRequest.objects.get(id=id)
+    return request
+
+
+async def send_mailing(request: MailingRequest):
+    session = await get_telegram_session(request.client_phone)
+    client = TelegramClient(StringSession(session), api_id=settings.TELEGRAM_API_ID, api_hash=settings.TELEGRAM_API_HASH)
+    await client.connect()
+    text = await make_mailing_text(request.message_title, request.message_text)
+    images = await sync_to_async(lambda: list(request.message_images.all()), thread_sensitive=True)()
+    new_images = [image.file.file.name for image in images]
+    files = await sync_to_async(lambda: list(request.message_files.all()), thread_sensitive=True)()
+    new_files = [file.file.file.name for file in files]
+    groups = await sync_to_async(lambda: list(request.groups.all()), thread_sensitive=True)()
+    if len(list(images)) + len(list(files)) > 0:
+        for group in groups:
+            try:
+                entity = await client.get_entity(group.id)
+            except ValueError:
+                entity = await client.get_entity(PeerChannel(group.id))
+            if len(new_images) > 0:
+                await client.send_file(entity=entity, file=new_images, caption=text)
+                if len(new_files) > 0:
+                    await client.send_file(entity=entity, file=new_files, force_document=True, allow_cache=False)
+            else:
+                await client.send_file(entity=entity, file=new_files, force_document=True, allow_cache=False, caption=text)
+    else:
+        for group in groups:
+            try:
+                entity = await client.get_entity(group.id)
+            except ValueError:
+                entity = await client.get_entity(PeerChannel(group.id))
+            await client.send_message(entity=entity, message=text)
+    if request.is_instant:
+        request.is_active = False
+    await sync_to_async(lambda: request.save(), thread_sensitive=True)()
+
+
+async def make_mailing_text(title: str, text: str):
+    if len(title) + len(text) == 0:
+        return ''
+    new_text = f'**{title}**\n\n{text}'
+    return new_text
+
+
+def get_active_mailings() -> list[MailingRequest]:
+    mailings = MailingRequest.objects.all().filter(is_active=True)
+    return list(mailings)
+
+
+async def check_mailings(mailings: list[MailingRequest]) -> None:
+    count = 0
+    print(len(mailings))
+    for mailing in mailings:
+        for time in mailing.send_time:
+            if 0 <= (timezone.now() - time).total_seconds() / 60 <= 1:
+
+                count += 1
+                await send_mailing(mailing)
+        if (timezone.now() - mailing.send_time[-1]).total_seconds() / 60 > 0:
+            mailing.is_active = False
+            await sync_to_async(lambda: mailing.save(), thread_sensitive=True)()
+    print(f'{count} mailings sent...')
+
+
+async def get_active_mailings_by_user(user: CustomUser) -> list[MailingRequest]:
+    mailings = await sync_to_async(lambda: list(MailingRequest.objects.all().filter(is_active=True, user_id=user.id)),
+                                   thread_sensitive=True)()
+    return mailings
+
+
+async def parse_mailings(mailings: list[MailingRequest]) -> list[ParsedMailing]:
+    new_mailings = list()
+    for mailing in mailings:
+        groups = await sync_to_async(lambda: list(mailing.groups.all()), thread_sensitive=True)()
+        files = await sync_to_async(lambda: list(mailing.message_files.all()), thread_sensitive=True)()
+        images = await sync_to_async(lambda: list(mailing.message_images.all()), thread_sensitive=True)()
+        new_mailings.append(ParsedMailing(mailing, groups, images, files))
+    return new_mailings
+
+
+async def make_mailing_inactive(id: int) -> None:
+    mailing = await MailingRequest.objects.aget(id=id)
+    mailing.is_active = False
+    await sync_to_async(lambda: mailing.save(), thread_sensitive=True)()
+
+
+async def get_inactive_mailings_by_user(user: CustomUser) -> list[MailingRequest]:
+    mailings = await sync_to_async(lambda: list(MailingRequest.objects.all().filter(is_active=False, user_id=user.id)),
+                                   thread_sensitive=True)()
+    return mailings
+
+
+async def make_mailing_active(id: int) -> None:
+    mailing = await MailingRequest.objects.aget(id=id)
+    mailing.is_active = True
+    await sync_to_async(lambda: mailing.save(), thread_sensitive=True)()
