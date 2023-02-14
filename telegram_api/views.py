@@ -13,6 +13,7 @@ from user.services import get_user
 from asgiref.sync import sync_to_async
 import asyncio
 
+
 class TelegramView(View):
     """ Class based view for telegram authorization, phone number verification """
     template_name = 'telegram_api/telegram.html'
@@ -107,8 +108,11 @@ class MessageSearch(View):
         if not is_authenticated:
             return redirect('/user/login')
         if 'number' in request.POST:
-            email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
-            await services.change_active_session(request.POST.get('number'), email)
+            if 'choose' in request.POST:
+                email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+                await services.change_active_session(request.POST.get('number'), email)
+            else:
+                await services.delete_session(request.POST.get('number'))
             return redirect('/tg/search')
         else:
             telegram_session = await sync_to_async(lambda: request.user.active_session, thread_sensitive=True)()
@@ -181,6 +185,13 @@ class MessageMailing(View):
                                                     'numbers': numbers})
 
     async def post(self, request, *args, **kwargs):
+        if 'number' in request.POST:
+            if 'choose' in request.POST:
+                email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
+                await services.change_active_session(request.POST.get('number'), email)
+            else:
+                await services.delete_session(request.POST.get('number'))
+            return redirect('/tg/mailing')
         title = request.POST.get('title')
         text = request.POST.get('text')
         images = request.FILES.getlist('images')

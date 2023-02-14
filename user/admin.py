@@ -4,7 +4,6 @@ from user.models import CustomUser
 
 from django import forms
 from django.contrib import admin
-from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
@@ -17,7 +16,7 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'phone')
+        fields = ('email',)
 
     def clean_password2(self):
         # Check that the two password entries match
@@ -45,7 +44,7 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'password', 'first_name', 'last_name', 'phone', 'telegram', 'telegram_sessions', 'active_session', 'is_active', 'is_superuser')
+        fields = ('email', 'password', 'first_name', 'last_name', 'telegram', 'telegram_sessions', 'active_session', 'is_active', 'is_superuser')
 
     def clean_password(self):
         # Regardless of what the user provides, return the initial value.
@@ -66,7 +65,7 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('is_superuser',)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'phone', 'telegram', 'telegram_sessions', 'active_session', 'is_active')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'telegram', 'telegram_sessions', 'active_session', 'is_active')}),
         ('Permissions', {'fields': ('is_superuser',)}),
     )
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
@@ -74,7 +73,7 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'phone', 'password1', 'password2', 'is_active'),
+            'fields': ('email', 'password1', 'password2', 'is_active'),
         }),
     )
     search_fields = ('email',)

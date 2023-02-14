@@ -24,12 +24,11 @@ class RegisterView(View):
         if is_authenticated:
             return redirect('/')
         email = request.POST.get('email')
-        phone = request.POST.get('phone')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
 
         result = 'Аккаунт был создан.\nПожалуйста, свяжитесь с администрацией для активации.'
-        is_valid_password = is_valid_email = is_valid_phone = False
+        is_valid_password = is_valid_email = False
 
         try:
             is_valid_password = await services.validate_password(password1, password2)
@@ -41,13 +40,9 @@ class RegisterView(View):
             result = e.message
         else:
             is_valid_email = True
-        try:
-            is_valid_phone = await services.validate_phone(phone)
-        except ValidationError as e:
-            result = e.message
 
-        if is_valid_password and is_valid_email and is_valid_phone:
-            await sync_to_async(lambda: CustomUser.objects.create_user(email=email, phone=phone, password=password1), thread_sensitive=True)()
+        if is_valid_password and is_valid_email:
+            await sync_to_async(lambda: CustomUser.objects.create_user(email=email, password=password1), thread_sensitive=True)()
 
         return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': result})
 
@@ -64,14 +59,8 @@ class LoginView(View):
         return render(request, self.template_name, {'result': ''})
 
     async def post(self, request, *args, **kwargs):
-        email_or_phone = request.POST.get('username')
+        email = request.POST.get('username')
         password = request.POST.get('password')
-
-        try:
-            user = await services.get_user_by_phone(email_or_phone)
-            email = user.email
-        except CustomUser.DoesNotExist:
-            email = email_or_phone
 
         user = await sync_to_async(lambda: authenticate(request, username=email, password=password),
                                    thread_sensitive=True)()
@@ -101,7 +90,6 @@ class ProfileView(View):
         user.email = request.POST.get('email')
         user.first_name = request.POST.get('first_name')
         user.last_name = request.POST.get('last_name')
-        user.phone = request.POST.get('phone')
         user.telegram = request.POST.get('telegram')
 
         await sync_to_async(lambda: user.save(), thread_sensitive=True)()

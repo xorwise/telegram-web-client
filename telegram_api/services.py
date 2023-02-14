@@ -483,3 +483,8 @@ async def make_mailing_active(id: int) -> None:
     mailing = await MailingRequest.objects.aget(id=id)
     mailing.is_active = True
     await sync_to_async(lambda: mailing.save(), thread_sensitive=True)()
+
+
+async def delete_session(number: str) -> None:
+    session = await sync_to_async(lambda: TelegramSession.objects.get(phone=number), thread_sensitive=True)()
+    await sync_to_async(lambda: session.delete(), thread_sensitive=True)()

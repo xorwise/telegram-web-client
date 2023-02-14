@@ -12,7 +12,8 @@
                   <option value="{{number}}">{{number}}</option>
               {% endfor %}
           </select>
-      <button type="submit" class="content__btn btn">Выбрать</button>
+      <button type="submit" name="choose" class="content__btn btn">Выбрать</button>
+          <button type="submit" name="delete" class="content__btn btn btn_red">Удалить</button>
       </form>
       {% if is_tg_authorized %}
         <form method="post">
