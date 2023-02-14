@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 import os
 import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
@@ -28,7 +29,6 @@ SECRET_KEY = 'django-insecure-o*0irgt$i6l-^($9^jammo7g1x*3o#l8ywdw-qe1=%om52^2c0
 DEBUG = True
 
 ALLOWED_HOSTS = ['176.53.161.83', 'localhost', '127.0.0.1', '5.45.95.6']
-
 
 # Application definition
 
@@ -78,7 +78,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'telegramweb.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
@@ -92,7 +91,6 @@ DATABASES = {
         'PORT': '',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -112,10 +110,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
-    #'allauth.account.auth_backends.AuthenticationBackend',
+    # 'allauth.account.auth_backends.AuthenticationBackend',
 )
 
 # Internationalization
@@ -129,7 +126,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
@@ -139,8 +135,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 
 STATICFILES_FINDERS = (
-'django.contrib.staticfiles.finders.FileSystemFinder',
-'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
 
 MEDIA_URL = '/media/'
@@ -159,16 +155,22 @@ AUTH_USER_MODEL = 'user.CustomUser'
 
 DJANGO_ALLOW_ASYNC_UNSAFE = True
 
-
 TELEGRAM_API_ID = int(env('TG_API_ID'))
 TELEGRAM_API_HASH = env('TG_API_HASH')
 CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_TIMEZONE = 'Europe/Moscow'
 
 CELERY_BEAT_SCHEDULE = {
-      'add-every-1-minute': {
-        'task': 'telegram_api.tasks.check_tasks',
+    'add-every-1-minute': {
+        'task': 'telegram_api.tasks.check_mailings',
         'schedule': 60.0,
+        'options': {
+            'expires': 15.0,
+        },
+    },
+    'add-every-5-minutes': {
+        'task': 'telegram_api.tasks.check_search_requests',
+        'schedule': 300.0,
         'options': {
             'expires': 15.0,
         },

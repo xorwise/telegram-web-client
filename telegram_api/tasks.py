@@ -28,12 +28,9 @@ def messages_search(session: str, channels: list[str],  keywords: list[str], gro
 
 
 @celery_app.task()
-def check_tasks():
+def check_mailings():
     """ Celery task for research queue of search requests """
     loop = get_async_loop()
-    requests = services.get_active_requests(loop)
-    services.research_queue(requests, loop)
-
     mailings = services.get_active_mailings()
     loop.run_until_complete(services.check_mailings(mailings))
 
@@ -43,9 +40,10 @@ def send_message(id: int):
     mailing_request = services.get_mailing_request(id)
     loop = get_async_loop()
     loop.run_until_complete(services.send_mailing(mailing_request))
-    print('Success')
 
 
 @celery_app.task()
-def check_mailings():
-    ...
+def check_search_requests():
+    loop = get_async_loop()
+    requests = services.get_active_requests(loop)
+    services.research_queue(requests, loop)

@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect
 from django.views.generic import View
-# Create your views here.
+from django.core.exceptions import ValidationError
 from user import services
 from user.forms import ProfileForm, RegisterForm
 from django.contrib.auth import authenticate, login
 from asgiref.sync import sync_to_async
-
+from django.core.validators import EmailValidator
 from user.models import CustomUser, CustomUserManager
 
 
@@ -28,12 +28,28 @@ class RegisterView(View):
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
 
-        is_valid = await services.validate_password(password1, password2)
+        result = 'Аккаунт был создан.\nПожалуйста, свяжитесь с администрацией для активации.'
+        is_valid_password = is_valid_email = is_valid_phone = False
 
-        if is_valid:
+        try:
+            is_valid_password = await services.validate_password(password1, password2)
+        except ValidationError as e:
+            result = e.message
+        try:
+            EmailValidator(message='Введите корректную почту!')
+        except ValidationError as e:
+            result = e.message
+        else:
+            is_valid_email = True
+        try:
+            is_valid_phone = await services.validate_phone(phone)
+        except ValidationError as e:
+            result = e.message
+
+        if is_valid_password and is_valid_email and is_valid_phone:
             await sync_to_async(lambda: CustomUser.objects.create_user(email=email, phone=phone, password=password1), thread_sensitive=True)()
 
-        return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': 'Аккаунт был создан.\nПожалуйста, свяжитесь с администрацией для активации.'})
+        return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': result})
 
 
 class LoginView(View):
@@ -60,8 +76,7 @@ class LoginView(View):
         user = await sync_to_async(lambda: authenticate(request, username=email, password=password),
                                    thread_sensitive=True)()
         if user is None:
-            return render(request, self.template_name, {'result': 'Incorrect email/phone or password. Or account was '
-                                                                  'not activated.\nPlease, contact administration.'})
+            return render(request, self.template_name, {'result': 'Неправильный логин или пароль. Возможно ваш аккаунт не был активирован.\nПожалуйста, свяжитесь с администрацией'})
 
         await sync_to_async(lambda: login(request, user), thread_sensitive=True)()
         return redirect('/')

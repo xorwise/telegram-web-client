@@ -1,0 +1,2 @@
+class NotTelegramAuthorized(Exception):
+    pass

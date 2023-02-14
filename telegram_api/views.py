@@ -1,4 +1,5 @@
 from telegram_api.services import send_message
+from telegramweb.exceptions import NotTelegramAuthorized
 from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
 from django.shortcuts import render, redirect
 from django.views.generic import View
@@ -18,6 +19,8 @@ class TelegramView(View):
 
     async def get(self, request, *args, **kwargs):
         is_authenticated = await sync_to_async(lambda: request.user.is_authenticated)()
+        if not is_authenticated:
+            return redirect('/user/login')
         return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated})
 
     async def post(self, request, *args, **kwargs):
@@ -37,6 +40,9 @@ class TelegramConfirmView(View):
     template_name = 'telegram_api/telegram-confirm.html'
 
     async def get(self, request, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
         phone = await sync_to_async(lambda: request.session.get('phone'), thread_sensitive=True)()
         session = await services.get_telegram_session(phone)
         telegram_client = TelegramClient(session=StringSession(session), api_id=TELEGRAM_API_ID,
@@ -46,7 +52,6 @@ class TelegramConfirmView(View):
         if await telegram_client.is_user_authorized():
             print('true ')
             return redirect('/tg/search')
-        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
         return render(request, self.template_name, {'form': ConfirmForm(),
                                                     'result': '',
                                                     'is_authenticated': is_authenticated})
@@ -80,11 +85,17 @@ class MessageSearch(View):
     template_name = 'telegram_api/search-messages.html'
 
     async def get(self, request, *args, **kwargs):
-        active_session_phone, choices, client, numbers = await services.get_client_info(request)
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
+        active_session_phone, client, numbers = await services.get_client_info(request)
+
         if not await client.is_user_authorized() or active_session_phone == '':
             return render(request, self.template_name, {'is_tg_authorized': False,
                                                         'active_tg': active_session_phone,
                                                         'numbers': numbers})
+
+        choices = await services.get_dialog_choices(client)
         return render(request, self.template_name, {'is_tg_authorized': True,
                                                     'channels': choices,
                                                     'result': '',
@@ -92,6 +103,9 @@ class MessageSearch(View):
                                                     'numbers': numbers})
 
     async def post(self, request, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
         if 'number' in request.POST:
             email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
             await services.change_active_session(request.POST.get('number'), email)
@@ -128,6 +142,9 @@ class SearchRequestQueue(View):
     template_name = 'telegram_api/search-queue.html'
 
     async def get(self, request, page: int = 0, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         db_user = await get_user(email)
         requests = await services.get_sorted_requests(db_user)
@@ -146,11 +163,17 @@ class MessageMailing(View):
     form_class = MailingForm()
 
     async def get(self, request, *args, **kwargs):
-        active_session_phone, choices, client, numbers = await services.get_client_info(request)
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
+        active_session_phone, client, numbers = await services.get_client_info(request)
+
         if not await client.is_user_authorized() or active_session_phone == '':
             return render(request, self.template_name, {'is_tg_authorized': False,
                                                         'active_tg': active_session_phone,
                                                         'numbers': numbers})
+
+        choices = await services.get_dialog_choices(client)
         return render(request, self.template_name, {'is_tg_authorized': True,
                                                     'channels': choices,
                                                     'result': '',
@@ -190,10 +213,14 @@ class MessageMailing(View):
                                                    end_time, intervals_number, interval)
         return redirect('/tg/mailing')
 
+
 class MailingQueue(View):
     template_name = 'telegram_api/mailing-queue.html'
 
     async def get(self, request, page: int = 0, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         user = await get_user(email)
         mailings = await services.get_active_mailings_by_user(user)
@@ -216,6 +243,9 @@ class MailingArchive(View):
     template_name = 'telegram_api/mailing-archive.html'
 
     async def get(self, request, page: int = 0, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
         email = await sync_to_async(lambda: request.user.email, thread_sensitive=True)()
         user = await get_user(email)
         mailings = await services.get_inactive_mailings_by_user(user)

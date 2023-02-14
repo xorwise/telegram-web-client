@@ -18,6 +18,8 @@ from django.core.files import File
 from django.utils import timezone
 from django.conf import settings
 from telegram_api import tasks
+from telegramweb.exceptions import NotTelegramAuthorized
+
 
 async def get_telegram_session(phone: str) -> str:
     """ Get Telegram session from phone number """
@@ -262,10 +264,9 @@ async def get_client_info(request):
     client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                             api_hash=TELEGRAM_API_HASH)
     await client.connect()
-    choices = await get_dialog_choices(client)
     active_session_phone = await get_active_session(telegram_session)
     numbers = await get_numbers(request.user.email)
-    return active_session_phone, choices, client, numbers
+    return active_session_phone, client, numbers
 
 
 async def save_files(files):
