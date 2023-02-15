@@ -152,7 +152,7 @@ LOGGING = {
     },
     'formatters': {
         'verbose': {
-            'format': '[contactor] %(levelname)s %(asctime)s %(message)s'
+            'format': '%(levelname)s %(asctime)s %(message)s'
         },
     },
     'handlers': {
@@ -174,6 +174,7 @@ LOGGING = {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
             'filename': env('LOG_PATH'),
+            'formatter': 'verbose',
         },
     },
     'loggers': {
