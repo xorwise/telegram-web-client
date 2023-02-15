@@ -120,7 +120,7 @@ AUTHENTICATION_BACKENDS = (
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Europe/Moscow'
+TIME_ZONE = 'Asia/Nicosia'
 
 USE_I18N = True
 
@@ -166,14 +166,14 @@ LOGGING = {
             'level':'INFO',
             'class': 'logging.handlers.SysLogHandler',
             'facility': SysLogHandler.LOG_LOCAL2,
-            'address': env('LOG_PATH'),
+            'address': 'dev/log',
             'formatter': 'verbose',
         },
         # Warning messages are sent to admin emails
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': '/home/xorwise/Programming/debug.log',
+            'filename': env('LOG_PATH'),
         },
     },
     'loggers': {
@@ -203,7 +203,7 @@ DJANGO_ALLOW_ASYNC_UNSAFE = True
 TELEGRAM_API_ID = int(env('TG_API_ID'))
 TELEGRAM_API_HASH = env('TG_API_HASH')
 CELERY_BROKER_URL = 'redis://localhost:6379'
-CELERY_TIMEZONE = 'Europe/Moscow'
+CELERY_TIMEZONE = 'Asia/Nicosia'
 
 CELERY_BEAT_SCHEDULE = {
     'add-every-1-minute': {

@@ -10,21 +10,27 @@ isInstant.addEventListener('change', (event) => {
     if (isInstant.checked) {
         dateOptions.style.display = "None";
         periodicalDates.style.display = "none";
+        [...periodicalDates.getElementsByTagName('input')].forEach(element => {element.removeAttribute('required')})
         particularDates.style.display = "none";
-        dateOptions.style.display = "none";
+        [...particularDates.getElementsByTagName('input')].forEach(element => {element.removeAttribute('required')})
         } else {
             dateOptions.style.display = "block";
             periodicalDates.style.display = "block";
+            [...periodicalDates.getElementsByTagName('input')].forEach(element => {element.setAttribute('required', 'true')})
         }
     });
 
 dateOptions.addEventListener("change", (event) => {
    if (optionsSelect.value === "periodical") {
                 periodicalDates.style.display = "block";
+                [...periodicalDates.getElementsByTagName('input')].forEach(element => {element.setAttribute('required', 'true')})
                 particularDates.style.display = "none";
+                [...particularDates.getElementsByTagName('input')].forEach(element => {element.removeAttribute('required')})
             } else {
                 particularDates.style.display = "block";
+                [...particularDates.getElementsByTagName('input')].forEach(element => {element.setAttribute('required', 'true')})
                 periodicalDates.style.display = "none";
+                [...periodicalDates.getElementsByTagName('input')].forEach(element => {element.removeAttribute('required')})
             }
 })
 

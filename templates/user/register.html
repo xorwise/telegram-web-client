@@ -44,15 +44,15 @@
               {% csrf_token %}
             <div class="auth__line line">
                 <label class="auth__label label" for="id_email">Почта:</label>
-                <input class="auth__input input" type="email" name="email" required="" id="id_email">
+                <input value="{{ values.email }}" class="auth__input input" type="email" name="email" required="" id="id_email">
             </div>
             <div class="auth__line line">
                 <label class="auth__label label" for="id_password1">Пароль:</label>
-                <input minlength="8" type="password" class="auth__input input" name="password1" maxlength="100" required="" id="id_password1">
+                <input value="{{ values.password1 }}" minlength="8" type="password" class="auth__input input" name="password1" maxlength="100" required="" id="id_password1">
             </div>
              <div class="auth__line line">
                 <label class="auth__label label" for="id_password2">Повторите пароль:</label>
-                <input minlength="8" type="password" class="auth__input input" name="password2" maxlength="100" required="" id="id_password2">
+                <input value="{{ values.password2 }}" minlength="8" type="password" class="auth__input input" name="password2" maxlength="100" required="" id="id_password2">
             </div>
               <button class="auth__btn btn" type="submit">Зарегистрироваться</button>
           <p>

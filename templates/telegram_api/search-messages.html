@@ -21,12 +21,12 @@
         <div class="dropdown-box">
             <label class="content__label label" style="font-size: 1.35rem">Список каналов:</label>
           <div class="content__line line">
-              <textarea type="text" class="textarea content__textarea" name="channels" required="" placeholder="ссылки на каналы или username, каждый канал с новой строки\nПример:\nhttps://t.me/channel\nt.me/channel\nchannel"></textarea>
+              <textarea type="text" class="textarea content__textarea" name="channels" required="" placeholder="ссылки на каналы или username, каждый канал с новой строки\nПример:\nhttps://t.me/channel\nt.me/channel\nchannel">{{ values.channels }}</textarea>
           </div>
         </div>
             <div class="content__line line">
           <label class="content__label label" for="id_keywords" style="font-size: 1.35rem">Ключевые слова:</label>
-      <input type="text" name="keywords" class="content__input input" maxlength="255" required="" id="id_keywords" placeholder="ключевые слова через запятую">
+      <input value="{{ values.keywords }}" type="text" name="keywords" class="content__input input" maxlength="255" required="" id="id_keywords" placeholder="ключевые слова через запятую">
         </div>
         <div class="dropdown-box">
                <label class="content__label label" style="font-size: 1.35rem">Список групп:</label>
@@ -35,7 +35,11 @@
                 {% for value, name in channels %}
                 <div data-channel="{{ name }}">
                     <label class="content__label" for="gr_{{ value }}">{{ name }}</label>
-                    <input id="gr_{{ value }}" type="checkbox" name="group_{{ value }}">
+                    {% if value in values.groups %}
+                        <input checked id="gr_{{ value }}" type="checkbox" name="group_{{ value }}">
+                    {% else %}
+                        <input id="gr_{{ value }}" type="checkbox" name="group_{{ value }}">
+                    {% endif %}
                 </div>
                 {% endfor %}
                 </div>

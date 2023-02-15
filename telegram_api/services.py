@@ -488,3 +488,11 @@ async def make_mailing_active(id: int) -> None:
 async def delete_session(number: str) -> None:
     session = await sync_to_async(lambda: TelegramSession.objects.get(phone=number), thread_sensitive=True)()
     await sync_to_async(lambda: session.delete(), thread_sensitive=True)()
+
+
+async def validate_channels(client, channels: list[str]) -> None:
+    for channel in channels:
+        try:
+            await client.get_entity(channel)
+        except ValueError:
+            await client.get_entity(PeerChannel(int(channel)))

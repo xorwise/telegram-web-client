@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login
 from asgiref.sync import sync_to_async
 from django.core.validators import EmailValidator
 from user.models import CustomUser, CustomUserManager
+from django.db.utils import IntegrityError
 
 
 class RegisterView(View):
@@ -29,22 +30,30 @@ class RegisterView(View):
 
         result = 'Аккаунт был создан.\nПожалуйста, свяжитесь с администрацией для активации.'
         is_valid_password = is_valid_email = False
-
+        values = dict()
         try:
             is_valid_password = await services.validate_password(password1, password2)
+            values.update({'password1': password1, 'password2': password2})
         except ValidationError as e:
             result = e.message
         try:
             EmailValidator(message='Введите корректную почту!')
+            values.update({'email': email})
         except ValidationError as e:
             result = e.message
         else:
             is_valid_email = True
 
         if is_valid_password and is_valid_email:
-            await sync_to_async(lambda: CustomUser.objects.create_user(email=email, password=password1), thread_sensitive=True)()
+            try:
+                await sync_to_async(lambda: CustomUser.objects.create_user(email=email, password=password1), thread_sensitive=True)()
+            except IntegrityError:
+                result = 'Пользователь с таким E-mail уже существует!'
+                del values['email']
+            else:
+                values = dict()
 
-        return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': result})
+        return render(request, self.template_name, {'is_authenticated': is_authenticated, 'result': result, 'values': values})
 
 
 class LoginView(View):

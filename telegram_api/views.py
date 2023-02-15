@@ -4,7 +4,8 @@ from telegramweb.settings import TELEGRAM_API_ID, TELEGRAM_API_HASH
 from django.shortcuts import render, redirect
 from django.views.generic import View
 from telethon.sync import TelegramClient
-from telethon.errors import SessionPasswordNeededError, PasswordHashInvalidError, CodeInvalidError
+from telethon.errors import SessionPasswordNeededError, PasswordHashInvalidError
+from telethon.errors.rpcerrorlist import PhoneCodeInvalidError
 from telethon.sessions import StringSession
 from telegram_api.forms import PhoneForm, ConfirmForm, MailingForm
 from telegram_api import services
@@ -12,6 +13,9 @@ from telegram_api.tasks import messages_search
 from user.services import get_user
 from asgiref.sync import sync_to_async
 import asyncio
+import phonenumbers
+from phonenumbers import carrier
+from phonenumbers.phonenumberutil import number_type
 
 
 class TelegramView(View):
@@ -25,11 +29,27 @@ class TelegramView(View):
         return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated})
 
     async def post(self, request, *args, **kwargs):
-        await sync_to_async(lambda: request.session.update({"phone": request.POST.get('phone')}),
+        phone = request.POST.get('phone')
+
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated)()
+        try:
+            parsed_phone = phonenumbers.parse(phone)
+        except phonenumbers.phonenumberutil.NumberParseException:
+            return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated,
+                                                        'error': 'Невалидный номер телефона!', 'value': phone})
+        else:
+            if not phonenumbers.is_valid_number(parsed_phone):
+                return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated,
+                                                            'error': 'Невалидный номер телефона!', 'value': phone})
+
+        formatted_phone = phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164)
+        await sync_to_async(lambda: request.session.update({
+                "phone": formatted_phone}),
                             thread_sensitive=True)()
+
         email = await sync_to_async(lambda: request.user.email)()
         user = await get_user(email)
-        new_user = await send_message(request, request.POST.get('phone'), user)
+        new_user = await send_message(request, formatted_phone, user)
 
         await sync_to_async(lambda: new_user.save(), thread_sensitive=True)()
 
@@ -58,6 +78,7 @@ class TelegramConfirmView(View):
                                                     'is_authenticated': is_authenticated})
 
     async def post(self, request, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
         phone = await sync_to_async(lambda: request.session.get('phone'), thread_sensitive=True)()
         code = request.POST.get('code')
         password = request.POST.get('password')
@@ -69,15 +90,23 @@ class TelegramConfirmView(View):
 
         try:
             await telegram_client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
+        except PhoneCodeInvalidError:
+            return render(request, self.template_name, {'form': ConfirmForm(),
+                                                        'result': 'Неверный код!',
+                                                        'values': {'code': request.POST.get('code'),
+                                                                   'password': request.POST.get('password')},
+                                                        'is_authenticated': is_authenticated
+                                                        })
         except SessionPasswordNeededError:
             try:
                 await telegram_client.sign_in(password=password)
             except PasswordHashInvalidError:
                 return render(request, self.template_name, {'form': ConfirmForm(),
-                                                            'result': 'Incorrect password'})
-        except CodeInvalidError:
-            return render(request, self.template_name, {'form': ConfirmForm(),
-                                                        'result': 'Incorrect code'})
+                                                            'result': 'Неправильный пароль!', 'values': {'code': code,
+                                                                                                       'password': password},
+                                                            'is_authenticated': is_authenticated
+                                                            })
+
         return redirect('/tg/search')
 
 
@@ -121,19 +150,32 @@ class MessageSearch(View):
             keywords = request.POST.get('keywords').split(',')
             groups = await services.parse_request(mode=False, keys=list(request.POST.keys()))
             phone = await services.get_number(telegram_session)
-            try:
-                messages_search.delay(telegram_session, channels, keywords, groups, email, phone)
-            except ValueError:
-                result = 'Канал(ы) не был(и) найден(ы).'
-            else:
-                result = 'Запрос создан и добавлен в очередь!'
-
             client = TelegramClient(session=StringSession(telegram_session), api_id=TELEGRAM_API_ID,
                                     api_hash=TELEGRAM_API_HASH)
             await client.connect()
             choices = await services.get_dialog_choices(client)
             active_session_phone = await services.get_active_session(telegram_session)
             numbers = await services.get_numbers(request.user.email)
+            try:
+                await services.validate_channels(client, channels)
+            except (ValueError, TypeError):
+                result = 'Канал(ы) не был(и) найден(ы).'
+                return render(request, self.template_name, {
+                    'is_tg_authorized': True,
+                    'channels': choices,
+                    'active_tg': active_session_phone,
+                    'result': result,
+                    'numbers': numbers,
+                    'values': {
+                        'channels': request.POST.get('channels'),
+                        'keywords': request.POST.get('keywords'),
+                        'groups': groups,
+                    }
+                })
+            else:
+                result = 'Запрос создан и добавлен в очередь!'
+            messages_search.delay(telegram_session, channels, keywords, groups, email, phone)
+
             return render(request, self.template_name, {'is_tg_authorized': True,
                                                         'channels': choices,
                                                         'active_tg': active_session_phone,
