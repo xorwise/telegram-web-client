@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 from telethon.sync import TelegramClient
 from telethon.errors import SessionPasswordNeededError, PasswordHashInvalidError
-from telethon.errors.rpcerrorlist import PhoneCodeInvalidError
+from telethon.errors.rpcerrorlist import PhoneCodeInvalidError, FloodWaitError
 from telethon.sessions import StringSession
 from telegram_api.forms import PhoneForm, ConfirmForm, MailingForm
 from telegram_api import services
@@ -49,7 +49,17 @@ class TelegramView(View):
 
         email = await sync_to_async(lambda: request.user.email)()
         user = await get_user(email)
-        new_user = await send_message(request, formatted_phone, user)
+        try:
+            new_user = await send_message(request, formatted_phone, user)
+        except FloodWaitError as e:
+            time = e.seconds
+            str_time = f'{time} секунд'
+            if time > 60:
+                str_time = f'{time // 60} минут {time % 60} секунд'
+                if time > 3600:
+                    str_time = f'{time // 3600} часов {(time % 3600) // 60} минут {(time % 3600) % 60} секунд'
+            return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated,
+                                                        'error': f'Не посылайте запросы слишком часто, подождите {str_time}.', 'value': phone})
 
         await sync_to_async(lambda: new_user.save(), thread_sensitive=True)()
 

@@ -83,8 +83,9 @@ async def search(client: TelegramClient, channels, keywords, groups) -> tuple[
             entity = await client.get_entity(PeerChannel(channel))
         for keyword in keywords:
             async for message in client.iter_messages(entity=entity, search=keyword):
-                messages.append(message)
-                added_messages.add(message.id)
+                if message.date > timezone.make_aware(datetime.combine(date.today() + timedelta(days=-5), datetime.min.time())):
+                    messages.append(message)
+                    added_messages.add(message.id)
     new_groups = list()
     for group in groups:
         try:
@@ -134,11 +135,8 @@ async def research(client: TelegramClient, channels: list[str], keywords: list[s
     for channel in channels:
         entity = await client.get_entity(channel)
         for keyword in keywords:
-            async for message in client.iter_messages(entity=entity, search=keyword):
-                if message.id not in added_messages:
-                    new_messages.append(message)
-                else:
-                    break
+            async for message in client.iter_messages(min_id=max(added_messages), entity=entity, search=keyword):
+                new_messages.append(message)
     return new_messages
 
 
