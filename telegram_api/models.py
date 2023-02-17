@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from user.models import CustomUser
 from django.conf import settings
+from django.utils import timezone
 
 
 class TelegramSession(models.Model):
@@ -131,11 +132,11 @@ class ParsedMailing:
 
         self.groups = ' ; '.join(new_groups)
         self.date_format = mailing.date_format if mailing.date_format is not None else 3
-        self.begin_time = mailing.begin_time.strftime('%Y-%m-%d %H:%M') if mailing.begin_time is not None else None
-        self.end_time = mailing.end_time.strftime('%Y-%m-%d %H:%M') if mailing.end_time is not None else None
+        self.begin_time = timezone.make_aware(timezone.make_naive(mailing.begin_time)).strftime('%Y-%m-%d %H:%M') if mailing.begin_time is not None else None
+        self.end_time = timezone.make_aware(timezone.make_naive(mailing.end_time)).strftime('%Y-%m-%d %H:%M') if mailing.end_time is not None else None
         self.interval_duration = mailing.interval_duration
         self.interval_time = data[mailing.interval_time] if mailing.interval_time is not None else None
-        self.dates = ' ; '.join([time.strftime('%Y-%m-%d %H:%M') for time in mailing.send_time])
+        self.dates = ' ; '.join([timezone.make_aware(timezone.make_naive(time)).strftime('%Y-%m-%d %H:%M') for time in mailing.send_time])
         self.is_active = 'Активно' if mailing.is_active else 'Не активно'
         self.is_instant = mailing.is_instant
         self.client_phone = mailing.client_phone
