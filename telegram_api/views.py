@@ -16,6 +16,7 @@ import asyncio
 import phonenumbers
 from phonenumbers import carrier
 from phonenumbers.phonenumberutil import number_type
+from django.conf import settings
 
 
 class TelegramView(View):
@@ -325,3 +326,25 @@ class MailingArchive(View):
         mailing_id = [key[8:] for key in keys if key.startswith('mailing_')][0]
         await services.make_mailing_active(mailing_id)
         return redirect('/tg/mailing-archive')
+
+
+class MailingChange(View):
+    template_name = 'telegram_api/mailing-change.html'
+
+    async def get(self, request, id: int, *args, **kwargs):
+        is_authenticated = await sync_to_async(lambda: request.user.is_authenticated, thread_sensitive=True)()
+        if not is_authenticated:
+            return redirect('/user/login')
+        user_id = await sync_to_async(lambda: request.user.id, thread_sensitive=True)()
+        mailing = await services.get_async_mailing_request(id=id)
+        if mailing.user_id != user_id:
+            return render(request, self.template_name, {'is_owner': False})
+        images = await sync_to_async(lambda: list(mailing.message_images.all()), thread_sensitive=True)()
+        files = await sync_to_async(lambda: list(mailing.message_files.all()), thread_sensitive=True)()
+        data_mailing = {
+            'title': mailing.message_title,
+            'text': mailing.message_text,
+            'images': images,
+            'files': files,
+        }
+        return render(request, self.template_name, {'dir': settings.BASE_DIR, 'is_owner': True, 'mailing': data_mailing})

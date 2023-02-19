@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <div class="content">
+        {% if is_owner %}
+        <form method="post">
+            <label class="content__label label" for="id_title">Заголовок:</label>
+            <input class="content__input input" id="id_title" type="text" value="{{ mailing.title }}">
+           <label class="content__label label" for="id_textarea">Текст:</label>
+            <textarea class="content__textarea textarea" id="id_textarea">{{ mailing.text }}</textarea>
+        <label class="content__label label">Выберите изображения, которые хотите оставить:</label>
+            {% for image in mailing.images %}
+            <img src="{% get_media_prefix %}{{ image.file.name }}" style="width: 100px; height: auto" alt="{{ image.file.name }}">
+            <input name="{{ image.id }}" type="checkbox" class="content__input input">
+            {% endfor %}
+        <label class="content__label label">Выберите файлы, которые хотите оставить:</label>
+            {% for file in mailing.files %}
+            <label class="content__label label" for="{{ file.id }}">{{ file.file.name }}</label>
+            <input name="{{ file.id }}" id="{{ file.id }}" type="checkbox">
+            {% endfor %}
+
+        </form>
+
+            <button type="submit">Изменить</button>
+        {% endif %}
+
+    </div>
+
+
+{% endblock %}

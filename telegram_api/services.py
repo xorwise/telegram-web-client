@@ -111,8 +111,8 @@ async def create_channel(channel: User | Chat | Channel) -> DBChannel:
             new_channel = await DBChannel.objects.acreate(id=channel.id, title=channel.title)
         except AttributeError:
             new_channel = await DBChannel.objects.acreate(id=channel.id, title=(
-                '' if channel.first_name is None else channel.first_name + ' ' +
-                                                      '' if channel.last_name is None else channel.last_name))
+                '' if channel.first_name is None else channel.first_name +
+                                                      '' if channel.last_name is None else f' {channel.last_name}'))
     return new_channel
 
 
@@ -135,7 +135,7 @@ async def research(client: TelegramClient, channels: list[str], keywords: list[s
     for channel in channels:
         entity = await client.get_entity(channel)
         for keyword in keywords:
-            async for message in client.iter_messages(min_id=max(added_messages), entity=entity, search=keyword):
+            async for message in client.iter_messages(min_id=max(added_messages) if len(added_messages) > 0 else 0, entity=entity, search=keyword):
                 new_messages.append(message)
     return new_messages
 
@@ -383,10 +383,14 @@ async def parse_particular_dates(dates: list[str], time: str) -> list[datetime]:
     return sorted(new_dates)
 
 
-def get_mailing_request(id: int):
+def get_mailing_request(id: int) -> MailingRequest:
     request = MailingRequest.objects.get(id=id)
     return request
 
+
+async def get_async_mailing_request(id: int) -> MailingRequest:
+    request = await MailingRequest.objects.aget(id=id)
+    return request
 
 async def send_mailing(request: MailingRequest):
     session = await get_telegram_session(request.client_phone)
@@ -400,23 +404,25 @@ async def send_mailing(request: MailingRequest):
     groups = await sync_to_async(lambda: list(request.groups.all()), thread_sensitive=True)()
     if len(list(images)) + len(list(files)) > 0:
         for group in groups:
+            new_text = await replace_variables_in_text(text, group.title)
             try:
                 entity = await client.get_entity(group.id)
             except ValueError:
                 entity = await client.get_entity(PeerChannel(group.id))
             if len(new_images) > 0:
-                await client.send_file(entity=entity, file=new_images, caption=text)
+                await client.send_file(entity=entity, file=new_images, caption=new_text)
                 if len(new_files) > 0:
                     await client.send_file(entity=entity, file=new_files, force_document=True, allow_cache=False)
             else:
-                await client.send_file(entity=entity, file=new_files, force_document=True, allow_cache=False, caption=text)
+                await client.send_file(entity=entity, file=new_files, force_document=True, allow_cache=False, caption=new_text)
     else:
         for group in groups:
+            new_text = await replace_variables_in_text(text, group.title)
             try:
                 entity = await client.get_entity(group.id)
             except ValueError:
                 entity = await client.get_entity(PeerChannel(group.id))
-            await client.send_message(entity=entity, message=text)
+            await client.send_message(entity=entity, message=new_text)
     if request.is_instant:
         request.is_active = False
     await sync_to_async(lambda: request.save(), thread_sensitive=True)()
@@ -494,3 +500,9 @@ async def validate_channels(client, channels: list[str]) -> None:
             await client.get_entity(channel)
         except ValueError:
             await client.get_entity(PeerChannel(int(channel)))
+
+
+async def replace_variables_in_text(text: str, name: str) -> str:
+    if '$' in text:
+        text = text.replace('$name', name)
+    return text

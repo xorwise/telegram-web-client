@@ -6,7 +6,8 @@ from telegram_api.views import (
     SearchRequestQueue,
     MessageMailing,
     MailingQueue,
-    MailingArchive
+    MailingArchive,
+    MailingChange
 )
 
 urlpatterns = [
@@ -16,6 +17,7 @@ urlpatterns = [
     path('search-queue/', SearchRequestQueue.as_view()),
     path('search-queue/<int:page>/', SearchRequestQueue.as_view()),
     path('mailing/', MessageMailing.as_view()),
+    path('mailing/<int:id>/', MailingChange.as_view()),
     path('mailing-queue/', MailingQueue.as_view()),
     path('mailing-queue/<int:page>/', MailingQueue.as_view()),
     path('mailing-archive/', MailingArchive.as_view()),
