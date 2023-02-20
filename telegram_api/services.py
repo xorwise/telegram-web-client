@@ -19,6 +19,7 @@ from django.utils import timezone
 from django.conf import settings
 from telegram_api import tasks
 from telegramweb.exceptions import NotTelegramAuthorized
+from telethon.errors.rpcerrorlist import UserDeactivatedBanError
 
 
 async def get_telegram_session(phone: str) -> str:
@@ -225,9 +226,14 @@ def research_queue(requests: dict, loop):
         client.connect()
 
         for request in requests[session]:
-            new_messages = loop.run_until_complete(
-                research(client=client, channels=list(request.channels), keywords=request.keywords,
-                         added_messages=request.added_messages))
+            try:
+                new_messages = loop.run_until_complete(
+                    research(client=client, channels=list(request.channels), keywords=request.keywords,
+                            added_messages=request.added_messages))
+            except UserDeactivatedBanError:
+                request.is_active = False
+                request.save()
+                continue
             if (len(new_messages)) > 0:
                 request.added_messages = request.added_messages + [msg.id for msg in new_messages]
                 request.save()
