@@ -136,7 +136,9 @@ async def research(client: TelegramClient, channels: list[str], keywords: list[s
         entity = await client.get_entity(channel)
         for keyword in keywords:
             async for message in client.iter_messages(min_id=max(added_messages) if len(added_messages) > 0 else 0, entity=entity, search=keyword):
-                new_messages.append(message)
+                if message.date > timezone.make_aware(
+                        datetime.combine(date.today() + timedelta(days=-5), datetime.min.time())):
+                    new_messages.append(message)
     return new_messages
 
 
