@@ -81,10 +81,7 @@ async def search(client: TelegramClient, channels, keywords, groups) -> tuple[
         try:
             entity = await client.get_entity(channel)
         except ValueError:
-            try:
-                entity = await client.get_entity(PeerChannel(channel))
-            except ValueError:
-                entity = await client.get_entity(PeerChat(channel))
+            entity = await client.get_entity(PeerChannel(channel))
         for keyword in keywords:
             async for message in client.iter_messages(entity=entity, search=keyword):
                 if message.date > timezone.make_aware(datetime.combine(date.today() + timedelta(days=-5), datetime.min.time())):
@@ -95,10 +92,7 @@ async def search(client: TelegramClient, channels, keywords, groups) -> tuple[
         try:
             entity = await client.get_entity(int(group))
         except ValueError:
-            try:
-                entity = await client.get_entity(PeerChannel(int(group)))
-            except ValueError:
-                entity = await client.get_entity(PeerChat(int(group)))
+            entity = await client.get_entity(PeerChannel(int(group)))
         new_groups.append(entity)
     return messages[::-1], new_groups, added_messages
 
@@ -155,10 +149,7 @@ async def forward_messages(client: TelegramClient, messages: list, groups: list[
         try:
             entity = await client.get_entity(group.id)
         except ValueError:
-            try:
-                entity = await client.get_entity(PeerChannel(group.id))
-            except ValueError:
-                entity = await client.get_entity(PeerChat(group.id))
+            entity = await client.get_entity(PeerChannel(group.id))
         for message in messages:
             await client.forward_messages(entity=entity, messages=message)
 
@@ -188,10 +179,7 @@ async def get_entity_name(client: TelegramClient, id: int):
     try:
         entity = await client.get_entity(id)
     except ValueError:
-        try:
-            entity = await client.get_entity(PeerChannel(id))
-        except ValueError:
-            entity = await client.get_entity(PeerChat(id))
+        entity = await client.get_entity(PeerChannel(id))
     return entity.title
 
 
@@ -364,10 +352,7 @@ async def get_groups_entity(request, groups: list[str]):
         try:
             entity = await client.get_entity(int(group))
         except ValueError:
-            try:
-                entity = await client.get_entity(PeerChannel(int(group)))
-            except ValueError:
-                entity = await client.get_entity(PeerChat(int(group)))
+            entity = await client.get_entity(PeerChannel(int(group)))
 
         new_groups.append(entity)
     return new_groups
@@ -523,10 +508,7 @@ async def validate_channels(client, channels: list[str]) -> None:
         try:
             await client.get_entity(channel)
         except ValueError:
-            try:
-                await client.get_entity(PeerChannel(int(channel)))
-            except ValueError:
-                entity = await client.get_entity(PeerChat(int(channel)))
+            await client.get_entity(PeerChannel(int(channel)))
 
 
 async def replace_variables_in_text(text: str, name: str) -> str:
