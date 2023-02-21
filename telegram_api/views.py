@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 from telethon.sync import TelegramClient
 from telethon.errors import SessionPasswordNeededError, PasswordHashInvalidError
+from telethon.errors.rpcbaseerrors import FloodError, BadRequestError
 from telethon.errors.rpcerrorlist import PhoneCodeInvalidError, FloodWaitError
 from telethon.sessions import StringSession
 from telegram_api.forms import PhoneForm, ConfirmForm, MailingForm
@@ -61,6 +62,9 @@ class TelegramView(View):
                     str_time = f'{time // 3600} часов {(time % 3600) // 60} минут {(time % 3600) % 60} секунд'
             return render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated,
                                                         'error': f'Не посылайте запросы слишком часто, подождите {str_time}.', 'value': phone})
+        except (BadRequestError, FloodError) as e:
+            return  render(request, self.template_name, {'form': PhoneForm(), 'is_authenticated': is_authenticated,
+                                                         'error': f'Внутренняя ошибка, возможно вы указали невалидные данные, возможно есть проблемы с TelegramAPI.'})
 
         await sync_to_async(lambda: new_user.save(), thread_sensitive=True)()
 
@@ -117,6 +121,9 @@ class TelegramConfirmView(View):
                                                                                                        'password': password},
                                                             'is_authenticated': is_authenticated
                                                             })
+        except (BadRequestError, FloodError) as e:
+            return render(request, self.template_name, {'form': ConfirmForm(), 'is_authenticated': is_authenticated,
+                                                        'result': f'Внутренняя ошибка, возможно вы указали невалидные данные, возможно есть проблемы с TelegramAPI.'})
 
         return redirect('/tg/search')
 
@@ -173,6 +180,19 @@ class MessageSearch(View):
                 result = 'Канал(ы) не был(и) найден(ы).'
                 return render(request, self.template_name, {
                     'is_tg_authorized': True,
+                    'channels': choices,
+                    'active_tg': active_session_phone,
+                    'result': result,
+                    'numbers': numbers,
+                    'values': {
+                        'channels': request.POST.get('channels'),
+                        'keywords': request.POST.get('keywords'),
+                        'groups': groups,
+                    }
+                })
+            except (BadRequestError, FloodError) as e:
+                result = f'Внутренняя ошибка, возможно вы указали невалидные данные, возможно есть проблемы с TelegramAPI.'
+                return render(request, self.template_name, {'is_tg_authorized': True,
                     'channels': choices,
                     'active_tg': active_session_phone,
                     'result': result,
