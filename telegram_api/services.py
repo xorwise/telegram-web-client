@@ -198,11 +198,9 @@ async def send_message(request: HttpRequest, phone: str, user: CustomUser) -> Cu
     me = await client.get_me()
     if not await client.is_user_authorized():
         print('test2')
-        await client.send_code_request(request.session.get('phone'))
         result = await client.send_code_request(request.session.get('phone'))
         await adjust_user_active_session(client, phone, request, result, user)
     elif str(me.phone) != phone.replace('+', ''):
-        await client.send_code_request(phone)
         result = await client.send_code_request(phone)
         await adjust_user_active_session(client, phone, request, result, user)
     return user
