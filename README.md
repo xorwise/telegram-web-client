@@ -22,7 +22,7 @@ Enjoy a seamless mailing experience with our integrated Markdown editor. Craft v
 
 To get started with the Telegram Web Client, follow these simple steps:
 
-1. Clone the repository: `git clone https://github.com/your-username/telegram-web-client.git`
+1. Clone the repository: `git clone https://github.com/xorwise/telegram-web-client.git`
 2. Install dependencies: `pip install -r requirements.txt`
 3. Configure your Telegram API credentials in the settings.
 4. Run migrations: `python manage.py migrate`
